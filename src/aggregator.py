@@ -818,18 +818,28 @@ class Aggregator:
         # Сортируем строго по задержке
         tested_pool.sort(key=lambda x: x.latency_ms)
 
-        # Выделяем группу Белые Списки РФ строго из протестированных скоростных нод (порты 443, TLS/Reality, RU SNI)
+        # Выделяем группу Белые Списки РФ (строго российские SNI и российские IP на порту 443/8443)
         wl_candidates = []
         fast_candidates = []
 
+        # 1. Приоритет нодам с легитимными SNI из белых списков РФ и российскими облаками
+        for node in all_raw_nodes:
+            raw_s = f"{node.name} {node.server} {node.sni}".lower()
+            if any(k in raw_s for k in ["ads.x5.ru", "5post", "eda.x5.ru", "api-maps.yandex.ru", "storage.yandex.net", "yandex.ru", "ya.ru", "vk.com", "m.vk.com", "gosuslugi", "persik.host", "51.250.", "31.177.", "89.223.", "176.109.", "31.129."]):
+                if node.port in [443, 8443, 9443, 26424, 56443, 62443] and node not in wl_candidates:
+                    wl_candidates.append(node)
+
+        # 2. Затем добавляем протестированные скоростные ноды с портом 443
         for node in tested_pool:
             txt = f"{node.name} {node.server} {node.sni}".upper()
-            if any(k in txt for k in ["WHITE", "CIDR", "MANGSHE", "RU", "РОССИЯ", "YANDEX", "VK", "MAIL", "GOSUSLUGI", "X5.RU", "BEGET", "AEZA", "PERSIK", "51.250."]) or node.port == 443:
-                wl_candidates.append(node)
-            else:
-                fast_candidates.append(node)
+            if any(k in txt for k in ["X5.RU", "YANDEX", "VK", "MAIL", "GOSUSLUGI", "BEGET", "AEZA", "PERSIK", "51.250."]):
+                if node not in wl_candidates:
+                    wl_candidates.append(node)
 
-        # Если в пуле Белых Списков мало узлов, дополняем лучшими из проверенных
+        for node in tested_pool:
+            if node not in wl_candidates and node.port == 443:
+                wl_candidates.append(node)
+
         for node in tested_pool:
             if node not in wl_candidates:
                 wl_candidates.append(node)
