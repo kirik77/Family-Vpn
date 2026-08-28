@@ -818,26 +818,18 @@ class Aggregator:
         # Сортируем строго по задержке
         tested_pool.sort(key=lambda x: x.latency_ms)
 
-        # Выделяем группу Белые Списки РФ (zieng2, persik, beget, aeza, x5.ru, 31.177, mangshe, cidr white)
+        # Выделяем группу Белые Списки РФ строго из протестированных скоростных нод (порты 443, TLS/Reality, RU SNI)
         wl_candidates = []
         fast_candidates = []
 
-        # Сначала добавляем проверенные узлы белых списков из специализированных источников
-        for node in all_raw_nodes:
-            raw_t = f"{node.name} {node.server} {node.sni}".lower()
-            if any(k in raw_t for k in ["persik", "aeza", "beget", "31.177.", "x5.ru", "51.250.", "белые списки", "госуслуги"]):
-                wl_candidates.append(node)
-
-        # Затем добавляем протестированные ноды с портами 443 и RU CIDR
         for node in tested_pool:
             txt = f"{node.name} {node.server} {node.sni}".upper()
-            if any(k in txt for k in ["WHITE", "CIDR", "MANGSHE", "RU", "РОССИЯ", "YANDEX", "VK", "MAIL", "GOSUSLUGI"]) or node.port == 443:
-                if node not in wl_candidates:
-                    wl_candidates.append(node)
+            if any(k in txt for k in ["WHITE", "CIDR", "MANGSHE", "RU", "РОССИЯ", "YANDEX", "VK", "MAIL", "GOSUSLUGI", "X5.RU", "BEGET", "AEZA", "PERSIK", "51.250."]) or node.port == 443:
+                wl_candidates.append(node)
             else:
                 fast_candidates.append(node)
 
-        # Если мало, дополняем проверенными
+        # Если в пуле Белых Списков мало узлов, дополняем лучшими из проверенных
         for node in tested_pool:
             if node not in wl_candidates:
                 wl_candidates.append(node)
