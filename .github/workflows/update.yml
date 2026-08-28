@@ -55,9 +55,15 @@ jobs:
         run: |
           echo "=== Проверка сгенерированных файлов в dist/ ==="
           ls -la dist/
-          test -f dist/singbox.json || exit 1
-          test -f dist/clash.yaml || exit 1
+          test -f dist/sub_fast.txt || exit 1
+          test -f dist/sub_whitelist.txt || exit 1
           test -f dist/sub.txt || exit 1
+          test -f dist/singbox_fast.json || exit 1
+          test -f dist/singbox_whitelist.json || exit 1
+          test -f dist/singbox.json || exit 1
+          test -f dist/clash_fast.yaml || exit 1
+          test -f dist/clash_whitelist.yaml || exit 1
+          test -f dist/clash.yaml || exit 1
           test -f dist/index.html || exit 1
           test -f dist/stats.json || exit 1
           echo "Все артефакты успешно созданы!"

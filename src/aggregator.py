@@ -3,7 +3,10 @@
 """
 Family VPN Subscription Pipeline
 Aggregator & Health-Tester for VLESS / Shadowsocks / Trojan / VMess
-Generates Sing-box, Clash Meta, and Base64 subscription formats.
+Generates independent subscriptions:
+ 1. 🚀 Fast / Home Internet (YouTube 4K, ChatGPT, Global)
+ 2. ⚡ Emergency Whitelist (RU SNI bypass: VK, Yandex, Gosuslugi, Rutube)
+ 3. 🛡️ Smart Combo (All in one with auto-switch)
 """
 
 import os
@@ -120,7 +123,7 @@ class ProxyNode:
         self.insecure: bool = False
 
     def is_ru_whitelist_compliant(self) -> bool:
-        """Проверка: порт 443/80 и SNI/Host из белого списка РФ."""
+        """Проверка: порт 443/80/8443 и SNI/Host из белого списка РФ."""
         if self.port not in [443, 80, 8443, 2053, 2083, 2087, 2096]:
             return False
             
@@ -582,7 +585,6 @@ class Aggregator:
                 timeout=timeout
             )
             
-            # Пробуем TLS если указан
             if node.security in ["tls", "reality"] or node.protocol == "trojan":
                 try:
                     ssl_ctx = ssl.create_default_context()
@@ -611,10 +613,9 @@ class Aggregator:
         except Exception:
             return False, 9999.0
 
-    async def test_pool(self, nodes: List[ProxyNode], max_timeout: float, sample_size: int = 300, concurrency: int = 60) -> List[ProxyNode]:
+    async def test_pool(self, nodes: List[ProxyNode], max_timeout: float, sample_size: int = 350, concurrency: int = 60) -> List[ProxyNode]:
         """Тестирует выборку узлов с высоким параллелизмом для быстрого завершения."""
         if len(nodes) > sample_size:
-            # Приоритет Reality и VLESS узлам
             reality_nodes = [n for n in nodes if n.security == "reality"]
             other_nodes = [n for n in nodes if n.security != "reality"]
             random.shuffle(other_nodes)
@@ -680,11 +681,9 @@ class Aggregator:
         logger.info("--- Сбор Группы 1: Обход Белых Списков (Whitelist) ---")
         g1_raw_nodes = await self.collect_nodes_from_sources(GROUP1_SOURCES)
         
-        # Фильтрация по белому списку
         g1_filtered = [n for n in g1_raw_nodes if n.is_ru_whitelist_compliant()]
         logger.info(f"Найдено {len(g1_filtered)} нод, соответствующих белому списку РФ.")
 
-        # Health Check для Группы 1
         g1_tested = await self.test_pool(g1_filtered, max_timeout=2.5, sample_size=200, concurrency=50)
         logger.info(f"Успешно проверено {len(g1_tested)} живых нод Whitelist.")
         
@@ -698,11 +697,10 @@ class Aggregator:
             node.group = "whitelist"
             node.name = node.clean_name("[⚡ Белые Списки]", idx)
 
-        # 2. Сбор пула 2: «🚀 Быстрый / YouTube / Google»
-        logger.info("--- Сбор Группы 2: Быстрый Global (YouTube / Google) ---")
+        # 2. Сбор пула 2: «🚀 Быстрый / Домашний интернет / YouTube»
+        logger.info("--- Сбор Группы 2: Быстрый Global / Домашний (YouTube / Google) ---")
         g2_raw_nodes = await self.collect_nodes_from_sources(GROUP2_SOURCES)
         
-        # Health Check для Группы 2
         g2_tested = await self.test_pool(g2_raw_nodes, max_timeout=2.5, sample_size=350, concurrency=60)
         logger.info(f"Успешно проверено {len(g2_tested)} живых глобальных нод.")
         
@@ -718,88 +716,148 @@ class Aggregator:
 
         logger.info(f"Отобрано: {len(top_g1)} узлов Whitelist и {len(top_g2)} узлов Global.")
 
-        # 3. Генерация файлов подписок
-        self.generate_singbox_config(top_g1, top_g2)
-        self.generate_clash_config(top_g1, top_g2)
-        self.generate_raw_sub_txt(top_g1, top_g2)
+        # 3. Генерация независимых форматов подписок
+        # 3.1. Быстрый / Домашний интернет
+        self.generate_raw_sub_file(top_g2, "sub_fast.txt", "sub_fast_plain.txt")
+        self.generate_singbox_profile(top_g2, [], "singbox_fast.json", "🚀 Быстрый (Домашний)")
+        self.generate_clash_profile(top_g2, [], "clash_fast.yaml", "🚀 Быстрый (Домашний)")
+
+        # 3.2. Аварийный / Белые списки РФ
+        self.generate_raw_sub_file(top_g1, "sub_whitelist.txt", "sub_whitelist_plain.txt")
+        self.generate_singbox_profile([], top_g1, "singbox_whitelist.json", "⚡ Обход Белых Списков")
+        self.generate_clash_profile([], top_g1, "clash_whitelist.yaml", "⚡ Обход Белых Списков")
+
+        # 3.3. Единая подписка (Smart Combo)
+        self.generate_raw_sub_file(top_g2 + top_g1, "sub.txt", "sub_plain.txt")
+        self.generate_singbox_profile(top_g2, top_g1, "singbox.json", "🎯 Выбор режима")
+        self.generate_clash_profile(top_g2, top_g1, "clash.yaml", "🎯 Выбор режима")
+
+        # Метаданные и веб-страница
         self.generate_stats(len(g1_raw_nodes) + len(g2_raw_nodes), top_g1, top_g2, time.time() - start_overall)
         self.prepare_web_assets()
 
         logger.info(f"=== Пайплайн завершен за {time.time() - start_overall:.2f} сек. Файлы сохранены в {self.dist_dir} ===")
 
-    def generate_singbox_config(self, g1: List[ProxyNode], g2: List[ProxyNode]):
-        """Генерирует dist/singbox.json на основе template_singbox.json."""
+    def generate_raw_sub_file(self, nodes: List[ProxyNode], b64_filename: str, plain_filename: str):
+        """Сохраняет список raw нод в Base64 и Plain text."""
+        raw_lines = [n.to_raw_url_with_name(n.name) for n in nodes]
+        combined_text = "\n".join(raw_lines)
+        
+        b64_path = os.path.join(self.dist_dir, b64_filename)
+        with open(b64_path, "wb") as f:
+            f.write(base64.b64encode(combined_text.encode("utf-8")))
+            
+        plain_path = os.path.join(self.dist_dir, plain_filename)
+        with open(plain_path, "w", encoding="utf-8") as f:
+            f.write(combined_text)
+            
+        logger.info(f"Сгенерирован {b64_path} ({len(raw_lines)} нод)")
+
+    def generate_singbox_profile(self, g_fast: List[ProxyNode], g_white: List[ProxyNode], filename: str, profile_name: str):
+        """Генерирует Sing-box конфигурацию под конкретный пул серверов."""
         template_path = os.path.join(os.path.dirname(__file__), "template_singbox.json")
         try:
             with open(template_path, "r", encoding="utf-8") as f:
                 config = json.load(f)
-        except Exception as e:
-            logger.warning(f"Не удалось прочитать {template_path}, создаем базовую структуру: {e}")
+        except Exception:
             config = {"outbounds": []}
 
-        node_outbounds: List[Dict[str, Any]] = []
-        g1_tags: List[str] = []
-        g2_tags: List[str] = []
+        fast_tags = [n.name for n in g_fast]
+        white_tags = [n.name for n in g_white]
+        all_tags = fast_tags + white_tags
 
-        # Группа 1 Outbounds
-        for node in g1:
-            out = node.to_singbox_outbound(node.name)
+        node_outbounds = []
+        for n in g_fast + g_white:
+            out = n.to_singbox_outbound(n.name)
             if out:
                 node_outbounds.append(out)
-                g1_tags.append(node.name)
 
-        # Группа 2 Outbounds
-        for node in g2:
-            out = node.to_singbox_outbound(node.name)
-            if out:
-                node_outbounds.append(out)
-                g2_tags.append(node.name)
-
-        # Обновляем группы в template outbounds
         new_outbounds = []
         for item in config.get("outbounds", []):
             tag = item.get("tag", "")
             if tag == "🎯 Выбор сервера":
-                item["outbounds"] = [
-                    "🚀 Быстрый (Авто)",
-                    "⚡ Обход Белых Списков (Авто)",
-                    "direct"
-                ] + g2_tags + g1_tags
+                item["tag"] = profile_name
+                selector_list = []
+                if fast_tags:
+                    selector_list.append("🚀 Быстрый (Авто)")
+                if white_tags:
+                    selector_list.append("⚡ Обход Белых Списков (Авто)")
+                selector_list.append("direct")
+                selector_list.extend(all_tags)
+                item["outbounds"] = selector_list
                 new_outbounds.append(item)
             elif tag == "🚀 Быстрый (Авто)":
-                item["outbounds"] = g2_tags if g2_tags else ["direct"]
-                new_outbounds.append(item)
+                if fast_tags:
+                    item["outbounds"] = fast_tags
+                    new_outbounds.append(item)
             elif tag == "⚡ Обход Белых Списков (Авто)":
-                item["outbounds"] = g1_tags if g1_tags else ["direct"]
-                new_outbounds.append(item)
+                if white_tags:
+                    item["outbounds"] = white_tags
+                    new_outbounds.append(item)
             else:
                 new_outbounds.append(item)
 
         new_outbounds.extend(node_outbounds)
         config["outbounds"] = new_outbounds
 
-        output_path = os.path.join(self.dist_dir, "singbox.json")
+        output_path = os.path.join(self.dist_dir, filename)
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
-        logger.info(f"Сгенерирован {output_path} (размер: {os.path.getsize(output_path)} байт)")
+        logger.info(f"Сгенерирован {output_path}")
 
-    def generate_clash_config(self, g1: List[ProxyNode], g2: List[ProxyNode]):
-        """Генерирует dist/clash.yaml для Clash Meta / Mihomo."""
-        proxies: List[Dict[str, Any]] = []
-        g1_names: List[str] = []
-        g2_names: List[str] = []
+    def generate_clash_profile(self, g_fast: List[ProxyNode], g_white: List[ProxyNode], filename: str, profile_name: str):
+        """Генерирует Clash Meta / Mihomo профиль."""
+        proxies = []
+        fast_names = []
+        white_names = []
 
-        for node in g1:
-            p = node.to_clash_proxy(node.name)
+        for n in g_fast:
+            p = n.to_clash_proxy(n.name)
             if p:
                 proxies.append(p)
-                g1_names.append(node.name)
+                fast_names.append(n.name)
 
-        for node in g2:
-            p = node.to_clash_proxy(node.name)
+        for n in g_white:
+            p = n.to_clash_proxy(n.name)
             if p:
                 proxies.append(p)
-                g2_names.append(node.name)
+                white_names.append(n.name)
+
+        all_names = fast_names + white_names
+
+        proxy_groups = [
+            {
+                "name": profile_name,
+                "type": "select",
+                "proxies": ([
+                    "🚀 Быстрый (Авто)" if fast_names else None,
+                    "⚡ Обход Белых Списков (Авто)" if white_names else None,
+                    "DIRECT"
+                ])
+            }
+        ]
+        # Clean None values
+        proxy_groups[0]["proxies"] = [p for p in proxy_groups[0]["proxies"] if p] + all_names
+
+        if fast_names:
+            proxy_groups.append({
+                "name": "🚀 Быстрый (Авто)",
+                "type": "url-test",
+                "url": "https://cp.cloudflare.com/generate_204",
+                "interval": 180,
+                "tolerance": 50,
+                "proxies": fast_names
+            })
+
+        if white_names:
+            proxy_groups.append({
+                "name": "⚡ Обход Белых Списков (Авто)",
+                "type": "url-test",
+                "url": "https://yandex.ru/generate_204",
+                "interval": 180,
+                "tolerance": 50,
+                "proxies": white_names
+            })
 
         clash_data = {
             "port": 7890,
@@ -809,7 +867,6 @@ class Aggregator:
             "mode": "rule",
             "log-level": "info",
             "ipv6": False,
-            "external-controller": "127.0.0.1:9090",
             "dns": {
                 "enable": True,
                 "listen": "0.0.0.0:1053",
@@ -817,42 +874,11 @@ class Aggregator:
                 "default-nameserver": ["77.88.8.8", "1.1.1.1"],
                 "enhanced-mode": "fake-ip",
                 "fake-ip-range": "198.18.0.1/16",
-                "nameserver": [
-                    "https://cloudflare-dns.com/dns-query",
-                    "https://dns.google/dns-query"
-                ],
-                "fallback": [
-                    "https://77.88.8.8/dns-query"
-                ]
+                "nameserver": ["https://cloudflare-dns.com/dns-query", "https://dns.google/dns-query"],
+                "fallback": ["https://77.88.8.8/dns-query"]
             },
             "proxies": proxies,
-            "proxy-groups": [
-                {
-                    "name": "🎯 Выбор режима",
-                    "type": "select",
-                    "proxies": [
-                        "🚀 Быстрый (Авто)",
-                        "⚡ Обход Белых Списков (Авто)",
-                        "DIRECT"
-                    ] + g2_names + g1_names
-                },
-                {
-                    "name": "🚀 Быстрый (Авто)",
-                    "type": "url-test",
-                    "url": "https://cp.cloudflare.com/generate_204",
-                    "interval": 180,
-                    "tolerance": 50,
-                    "proxies": g2_names if g2_names else ["DIRECT"]
-                },
-                {
-                    "name": "⚡ Обход Белых Списков (Авто)",
-                    "type": "url-test",
-                    "url": "https://yandex.ru/generate_204",
-                    "interval": 180,
-                    "tolerance": 50,
-                    "proxies": g1_names if g1_names else ["DIRECT"]
-                }
-            ],
+            "proxy-groups": proxy_groups,
             "rules": [
                 "DOMAIN-SUFFIX,yandex.ru,DIRECT",
                 "DOMAIN-SUFFIX,vk.com,DIRECT",
@@ -861,35 +887,14 @@ class Aggregator:
                 "DOMAIN-SUFFIX,ru,DIRECT",
                 "GEOIP,RU,DIRECT",
                 "GEOIP,LAN,DIRECT,no-resolve",
-                "MATCH,🎯 Выбор режима"
+                f"MATCH,{profile_name}"
             ]
         }
 
-        output_path = os.path.join(self.dist_dir, "clash.yaml")
+        output_path = os.path.join(self.dist_dir, filename)
         with open(output_path, "w", encoding="utf-8") as f:
             yaml.dump(clash_data, f, allow_unicode=True, sort_keys=False)
-        logger.info(f"Сгенерирован {output_path} (размер: {os.path.getsize(output_path)} байт)")
-
-    def generate_raw_sub_txt(self, g1: List[ProxyNode], g2: List[ProxyNode]):
-        """Генерирует dist/sub.txt в Base64 с префиксами названий."""
-        raw_lines = []
-        for node in g2:
-            raw_lines.append(node.to_raw_url_with_name(node.name))
-        for node in g1:
-            raw_lines.append(node.to_raw_url_with_name(node.name))
-
-        combined_text = "\n".join(raw_lines)
-        encoded_bytes = base64.b64encode(combined_text.encode("utf-8"))
-        
-        output_path = os.path.join(self.dist_dir, "sub.txt")
-        with open(output_path, "wb") as f:
-            f.write(encoded_bytes)
-            
-        plain_path = os.path.join(self.dist_dir, "sub_plain.txt")
-        with open(plain_path, "w", encoding="utf-8") as f:
-            f.write(combined_text)
-            
-        logger.info(f"Сгенерирован {output_path} (всего {len(raw_lines)} нод)")
+        logger.info(f"Сгенерирован {output_path}")
 
     def generate_stats(self, total_scraped: int, g1: List[ProxyNode], g2: List[ProxyNode], duration: float):
         """Сохраняет dist/stats.json для отображения на веб-странице."""
