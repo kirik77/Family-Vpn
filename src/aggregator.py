@@ -207,23 +207,27 @@ class ProxyNode:
     def clean_name(self, prefix: str, index: int) -> str:
         """Формирует красивое понятное имя ноды."""
         country_hint = "🌍"
-        raw_upper = (self.name + " " + self.server).upper()
-        if "RU" in raw_upper or "РОССИЯ" in raw_upper or self.is_ru_whitelist_compliant():
-            country_hint = "🇷🇺 RU"
-        elif "DE" in raw_upper or "GERMANY" in raw_upper or "FRA" in raw_upper:
-            country_hint = "🇩🇪 DE"
-        elif "NL" in raw_upper or "NETHERLANDS" in raw_upper or "НИДЕРЛАНДЫ" in raw_upper:
+        raw_upper = (self.name + " " + self.server + " " + (self.sni or "")).upper()
+        if "ИТАЛИЯ" in raw_upper or "IT" in raw_upper or "172.232." in raw_upper or "172.238." in raw_upper:
+            country_hint = "🇮🇹 IT"
+        elif "НИДЕРЛАНДЫ" in raw_upper or "NL" in raw_upper or "NETHERLAND" in raw_upper or "37.49." in raw_upper:
             country_hint = "🇳🇱 NL"
-        elif "FI" in raw_upper or "FINLAND" in raw_upper or "ФИНЛЯНДИЯ" in raw_upper:
-            country_hint = "🇫🇮 FI"
-        elif "SE" in raw_upper or "SWEDEN" in raw_upper or "ШВЕЦИЯ" in raw_upper:
+        elif "БРИТАНИЯ" in raw_upper or "GB" in raw_upper or "UK" in raw_upper or "95.154." in raw_upper or "78.129." in raw_upper:
+            country_hint = "🇬🇧 GB"
+        elif "ШВЕЦИЯ" in raw_upper or "SE" in raw_upper or "SWEDEN" in raw_upper or "SWE.FRKN" in raw_upper:
             country_hint = "🇸🇪 SE"
-        elif "US" in raw_upper or "UNITED STATES" in raw_upper or "США" in raw_upper:
-            country_hint = "🇺🇸 US"
-        elif "PL" in raw_upper or "ПОЛЬША" in raw_upper:
-            country_hint = "🇵🇱 PL"
-        elif "RO" in raw_upper or "РУМЫНИЯ" in raw_upper:
+        elif "РУМЫНИЯ" in raw_upper or "RO" in raw_upper or "ROMANIA" in raw_upper or "185.156." in raw_upper:
             country_hint = "🇷🇴 RO"
+        elif "ИСПАНИЯ" in raw_upper or "ES" in raw_upper or "SPAIN" in raw_upper or "185.254." in raw_upper:
+            country_hint = "🇪🇸 ES"
+        elif "ГЕРМАНИЯ" in raw_upper or "DE" in raw_upper or "GERMANY" in raw_upper or "FRA" in raw_upper:
+            country_hint = "🇩🇪 DE"
+        elif "ФИНЛЯНДИЯ" in raw_upper or "FI" in raw_upper or "FINLAND" in raw_upper or "31.77." in raw_upper:
+            country_hint = "🇫🇮 FI"
+        elif "MANGSHE" in raw_upper or "CIDR" in raw_upper or "РОССИЯ" in raw_upper or "RU" in raw_upper:
+            country_hint = "🇷🇺 RU"
+        elif "США" in raw_upper or "US" in raw_upper or "UNITED STATES" in raw_upper:
+            country_hint = "🇺🇸 US"
             
         proto_tag = self.protocol.upper()
         if self.security == "reality":
