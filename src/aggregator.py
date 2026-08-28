@@ -76,28 +76,28 @@ GROUP1_SOURCES = [
     "https://cyb-portal.com/CP-001",
     "https://cyb-portal.com/CP-002",
     "https://cyb-portal.com/CP-003",
-    "https://cyb-portal.com/CP-004",
     "https://cyb-portal.com/CP-005",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/reality.txt",
-    "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/reality.txt",
-    "https://raw.githubusercontent.com/yebekhe/TVC/main/subscriptions/xray/normal/reality",
+    "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/vless",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/mftb0101/Free-Vless/main/sub.txt",
+    "https://raw.githubusercontent.com/LalatinaHub/Mineral/master/result/nodes",
+    "https://raw.githubusercontent.com/ALIILAPRO/v2rayNG-Config/main/sub.txt",
+    "https://raw.githubusercontent.com/free18/v2ray/main/v.txt",
+    "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray",
 ]
 
 # Премиальные мировые источники скоростных VLESS-Reality, Hysteria2, Trojan и Shadowsocks
 GROUP2_SOURCES = [
     "https://cyb-portal.com/CP-006",
     "https://cyb-portal.com/CP-001",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/reality.txt",
-    "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/reality.txt",
-    "https://raw.githubusercontent.com/yebekhe/TVC/main/subscriptions/xray/normal/reality",
-    "https://raw.githubusercontent.com/snakem982/proxypool/main/source/reality.txt",
+    "https://cyb-portal.com/CP-002",
+    "https://cyb-portal.com/CP-003",
+    "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/vless",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
     "https://raw.githubusercontent.com/LalatinaHub/Mineral/master/result/nodes",
-    "https://raw.githubusercontent.com/MrPooyaX/VmessProtocol/main/reality.txt",
-    "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/trojan.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/trojan.txt",
-    "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/ss.txt",
+    "https://raw.githubusercontent.com/ALIILAPRO/v2rayNG-Config/main/sub.txt",
+    "https://raw.githubusercontent.com/free18/v2ray/main/v.txt",
+    "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
+    "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray",
 ]
 
 
@@ -135,7 +135,7 @@ class ProxyNode:
     def is_junk_node(self) -> bool:
         """Отсеивает медленные/мусорные прокси (CDN релеи, WebSocket обманки с ложным пингом, порт 80)."""
         # 1. Отсеиваем WebSocket (ws) и HTTP transport — главная причина низкой пропускной способности
-        if self.type in ["ws", "http"]:
+        if self.type in ["ws", "http"] or "type=ws" in self.raw_url.lower() or "speedtest.net" in self.raw_url.lower():
             return True
 
         # 2. Отсеиваем незащищенные порты
@@ -537,11 +537,18 @@ class ProtocolParser:
                     method, password = "chacha20-ietf-poly1305", user_info
 
                 host, port_s = host_port.split(":", 1)
+                query_s = ""
                 if "?" in port_s:
-                    port_s = port_s.split("?")[0]
+                    port_s, query_s = port_s.split("?", 1)
                 node = ProxyNode("shadowsocks", host, int(port_s), tag, url)
                 node.method = method
                 node.password = password
+                if query_s:
+                    params = urllib.parse.parse_qs(query_s)
+                    node.type = params.get("type", ["tcp"])[0].lower()
+                    node.sni = params.get("sni", [""])[0]
+                    node.host = params.get("host", [""])[0]
+                    node.security = params.get("security", [""])[0]
                 return node
             else:
                 padding = 4 - len(body) % 4
@@ -668,66 +675,107 @@ class Aggregator:
                     nodes.append(node)
         return nodes
 
-    async def single_probe(self, node: ProxyNode, timeout: float = 1.8) -> Tuple[bool, float]:
-        """Одиночный замер задержки TCP Connect + TLS Handshake."""
-        start_time = time.perf_counter()
+    async def single_probe(self, node: ProxyNode, timeout: float = 2.0) -> Tuple[bool, float, float]:
+        """Одиночный замер: время TCP соединения и проверка отклика TLS/Reality."""
+        t0 = time.perf_counter()
         loop = asyncio.get_running_loop()
         try:
             reader, writer = await asyncio.wait_for(
                 asyncio.open_connection(node.server, node.port),
                 timeout=timeout
             )
+            t_tcp = (time.perf_counter() - t0) * 1000.0
+            t_tls = 0.0
             
             if node.security in ["tls", "reality"] or node.protocol in ["trojan", "hysteria2"]:
+                t1 = time.perf_counter()
+                server_name = node.sni or node.host or node.server or "yandex.ru"
+                
+                # Попытка 1: Стандартный TLS handshake
+                tls_ok = False
                 try:
                     ssl_ctx = ssl.create_default_context()
                     ssl_ctx.check_hostname = False
                     ssl_ctx.verify_mode = ssl.CERT_NONE
-                    server_name = node.sni or node.host or node.server
                     await asyncio.wait_for(
                         loop.start_tls(
                             writer.transport,
                             ssl_ctx,
                             server_hostname=server_name
                         ),
-                        timeout=min(0.9, timeout)
+                        timeout=min(1.2, timeout)
                     )
+                    t_tls = (time.perf_counter() - t1) * 1000.0
+                    tls_ok = True
                 except Exception:
                     pass
 
-            writer.close()
+                # Попытка 2 (для Reality): проверка отклика на ClientHello
+                if not tls_ok:
+                    try:
+                        writer.close()
+                        reader2, writer2 = await asyncio.wait_for(
+                            asyncio.open_connection(node.server, node.port),
+                            timeout=timeout
+                        )
+                        t1 = time.perf_counter()
+                        # Минимальный TLS ClientHello
+                        sni_b = server_name.encode("utf-8")
+                        sni_len = len(sni_b)
+                        ext = b"\x00\x00" + (sni_len + 5).to_bytes(2, "big") + (sni_len + 3).to_bytes(2, "big") + b"\x00" + sni_len.to_bytes(2, "big") + sni_b
+                        ch_body = b"\x03\x03" + (b"\x01" * 32) + b"\x00\x00\x04\x13\x01\x13\x02\x01\x00" + len(ext).to_bytes(2, "big") + ext
+                        ch_msg = b"\x01" + len(ch_body).to_bytes(3, "big") + ch_body
+                        rec = b"\x16\x03\x01" + len(ch_msg).to_bytes(2, "big") + ch_msg
+                        
+                        writer2.write(rec)
+                        await writer2.drain()
+                        resp = await asyncio.wait_for(reader2.read(512), timeout=min(1.2, timeout))
+                        t_tls = (time.perf_counter() - t1) * 1000.0
+                        writer2.close()
+                        
+                        if len(resp) == 0:
+                            return False, 9999.0, 9999.0
+                    except Exception:
+                        return False, 9999.0, 9999.0
+
             try:
+                writer.close()
                 await writer.wait_closed()
             except Exception:
                 pass
             
-            rtt = (time.perf_counter() - start_time) * 1000.0
-            return True, rtt
+            return True, t_tcp, t_tls
         except Exception:
-            return False, 9999.0
+            return False, 9999.0, 9999.0
 
     async def check_node_quality(self, node: ProxyNode, max_timeout: float = 2.0) -> bool:
-        """Двойной замер задержки (Double-Probe) для проверки стабильности и джиттера."""
-        ok1, rtt1 = await self.single_probe(node, timeout=max_timeout)
-        if not ok1 or rtt1 > (max_timeout * 1000.0):
+        """Двойной замер задержки и проверка TLS пропускной способности."""
+        ok1, tcp1, tls1 = await self.single_probe(node, timeout=max_timeout)
+        if not ok1:
             return False
             
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.08)
         
-        ok2, rtt2 = await self.single_probe(node, timeout=max_timeout)
-        if not ok2 or rtt2 > (max_timeout * 1000.0):
+        ok2, tcp2, tls2 = await self.single_probe(node, timeout=max_timeout)
+        if not ok2:
             return False
 
-        avg_latency = (rtt1 + rtt2) / 2.0
-        jitter = abs(rtt1 - rtt2)
+        avg_tcp = (tcp1 + tcp2) / 2.0
+        avg_tls = (tls1 + tls2) / 2.0
+        total_rtt = avg_tcp + avg_tls
+        jitter = abs((tcp1 + tls1) - (tcp2 + tls2))
+
+        # Если TLS handshake длится слишком долго (> 220 мс) — канал перегружен, отбрасываем
+        if avg_tls > 220.0:
+            return False
         
-        # Бонус за Reality и Hysteria2
-        bonus = -20.0 if node.security == "reality" or node.protocol == "hysteria2" else 0.0
+        # Оценка качества: быстрый отклик + низкий джиттер + быстрый TLS
+        bonus = -25.0 if node.security == "reality" or node.protocol == "hysteria2" else 0.0
         
         node.is_alive = True
-        node.latency_ms = round(avg_latency, 1)
+        node.latency_ms = round(total_rtt, 1)
         node.jitter_ms = round(jitter, 1)
-        node.quality_score = round(avg_latency + (jitter * 1.5) + bonus, 1)
+        node.quality_score = round(total_rtt + (jitter * 1.5) + (avg_tls * 0.8) + bonus, 1)
         return True
 
     async def test_pool(self, nodes: List[ProxyNode], max_timeout: float = 2.0, sample_size: int = 400, concurrency: int = 60) -> List[ProxyNode]:
