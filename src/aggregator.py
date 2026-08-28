@@ -141,6 +141,7 @@ class ProxyNode:
         if self.port in [80, 8080, 8880, 2052, 2082, 2086, 2095] and self.security not in ["tls", "reality"]:
             return True
 
+        # 3. Отсеиваем Cloudflare/Fastly Anycast IP пулы
         server_ip = self.server.strip()
         cf_prefixes = [
             "104.16.", "104.17.", "104.18.", "104.19.", "104.20.", "104.21.", "104.22.", "104.23.", "104.24.",
@@ -149,6 +150,14 @@ class ProxyNode:
             "162.158.", "162.159.", "173.245.", "198.41.", "199.232."
         ]
         if any(server_ip.startswith(p) for p in cf_prefixes):
+            return True
+
+        # 4. Отсеиваем азиатские подсети (Япония/Сингапур/Индия) с высоким пингом для РФ (>300 мс)
+        asia_prefixes = [
+            "13.231.", "52.193.", "52.194.", "52.195.", "52.196.", "54.238.", "54.250.",
+            "43.207.", "35.79.", "18.179.", "57.180.", "13.112.", "13.114.", "13.193.", "13.230.", "13.235."
+        ]
+        if any(server_ip.startswith(p) for p in asia_prefixes):
             return True
 
         target = f"{self.server or ''} {self.host or ''} {self.sni or ''}".lower()
@@ -780,7 +789,7 @@ class Aggregator:
             fallbacks = self.create_fallback_nodes_if_needed("whitelist", len(g1_tested), 10)
             g1_tested.extend(fallbacks)
             
-        g1_tested.sort(key=lambda x: x.quality_score)
+        g1_tested.sort(key=lambda x: x.latency_ms)
         top_g1 = g1_tested[:10]
         for idx, node in enumerate(top_g1, 1):
             node.group = "whitelist"
@@ -791,11 +800,17 @@ class Aggregator:
         g2_raw_nodes = await self.collect_nodes_from_sources(GROUP2_SOURCES)
         logger.info(f"Собрано {len(g2_raw_nodes)} скоростных кандидатов.")
         
-        g2_reality = [n for n in g2_raw_nodes if n.security == "reality"]
-        g2_hy2 = [n for n in g2_raw_nodes if n.protocol == "hysteria2"]
-        g2_ss = [n for n in g2_raw_nodes if n.protocol == "shadowsocks"]
-        g2_other = [n for n in g2_raw_nodes if n not in g2_reality and n not in g2_hy2 and n not in g2_ss]
-        g2_sample = (g2_reality[:60] + g2_hy2[:30] + g2_ss[:20] + g2_other[:10])
+        # Отбираем европейские и российские ноды в первую очередь для низкого пинга (30-60 мс)
+        g2_eu_ru = []
+        g2_other = []
+        for n in g2_raw_nodes:
+            txt = f"{n.name} {n.server} {n.sni}".upper()
+            if any(c in txt for c in ["NL", "DE", "FI", "SE", "PL", "RO", "RU", "ИТАЛИЯ", "НИДЕРЛАНДЫ", "ГЕРМАНИЯ", "ФИНЛЯНДИЯ", "ШВЕЦИЯ"]):
+                g2_eu_ru.append(n)
+            else:
+                g2_other.append(n)
+
+        g2_sample = (g2_eu_ru[:80] + g2_other[:40])
 
         g2_tested = await self.speed_engine.test_nodes_real_e2e(g2_sample, test_url="https://cp.cloudflare.com/generate_204", batch_size=60)
         logger.info(f"Прошли сквозной Sing-box тест {len(g2_tested)} скоростных нод.")
@@ -804,7 +819,7 @@ class Aggregator:
             fallbacks = self.create_fallback_nodes_if_needed("global", len(g2_tested), 15)
             g2_tested.extend(fallbacks)
 
-        g2_tested.sort(key=lambda x: x.quality_score)
+        g2_tested.sort(key=lambda x: x.latency_ms)
         top_g2 = g2_tested[:15]
         for idx, node in enumerate(top_g2, 1):
             node.group = "global"
