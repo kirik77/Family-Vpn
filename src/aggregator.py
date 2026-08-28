@@ -74,6 +74,7 @@ RU_WHITELIST_DOMAINS = [
 
 # Источники для обхода блокировок РФ и белых списков
 GROUP1_SOURCES = [
+    "https://your-durev.com/sub/KqIeuDfTNW6LhL6T6S9Nun",
     "https://cyb-portal.com/CP-006",
     "https://cyb-portal.com/CP-001",
     "https://cyb-portal.com/CP-002",
@@ -93,6 +94,7 @@ GROUP1_SOURCES = [
 
 # Премиальные мировые источники скоростных VLESS-Reality, Hysteria2, Trojan и Shadowsocks
 GROUP2_SOURCES = [
+    "https://your-durev.com/sub/KqIeuDfTNW6LhL6T6S9Nun",
     "https://cyb-portal.com/CP-006",
     "https://cyb-portal.com/CP-001",
     "https://cyb-portal.com/CP-002",
@@ -142,8 +144,12 @@ class ProxyNode:
         self.insecure: bool = False
 
     def is_junk_node(self) -> bool:
-        """Отсеивает медленные/мусорные прокси (CDN релеи, WebSocket обманки с ложным пингом, порт 80)."""
-        if self.type in ["ws", "http"] or "type=ws" in self.raw_url.lower() or "speedtest.net" in self.raw_url.lower():
+        """Отсеивает медленные/мусорные прокси."""
+        raw_info = f"{self.name} {self.server} {self.sni} {self.host}".lower()
+        if any(k in raw_info for k in ["cloudpath", "devtestadmin", "51.250.", "x5.ru", "белые списки", "госуслуги", "mangshe", "cidr", "white"]):
+            return False
+
+        if self.type in ["ws", "http"] and not any(k in raw_info for k in [".ru", "devtestadmin", "mirra"]):
             return True
 
         if self.port in [80, 8080, 8880, 2052, 2082, 2086, 2095] and self.security not in ["tls", "reality"]:
@@ -164,8 +170,7 @@ class ProxyNode:
         blocked_prefixes = [
             "13.", "18.", "3.", "35.", "43.", "47.", "52.", "54.", "57.", "103.", "121.", "122.", "140.", "163.", "192.", "194.9."
         ]
-        is_wl = any(k in f"{self.name} {self.server}".lower() for k in ["mangshe", "cidr", "white"])
-        if not is_wl and any(server_ip.startswith(p) for p in blocked_prefixes):
+        if any(server_ip.startswith(p) for p in blocked_prefixes):
             return True
 
         target = f"{self.server or ''} {self.host or ''} {self.sni or ''}".lower()
@@ -179,7 +184,7 @@ class ProxyNode:
         if self.protocol == "vless":
             if not self.uuid or len(self.uuid) < 16:
                 return True
-            if self.security not in ["reality", "tls"]:
+            if self.security not in ["reality", "tls"] and not self.server.endswith(".ru"):
                 return True
         elif self.protocol == "vmess":
             return True
@@ -192,7 +197,7 @@ class ProxyNode:
     def is_ru_whitelist_compliant(self) -> bool:
         """Проверка: порт и SNI/Host/Имя из белого списка РФ."""
         raw_info = f"{self.name} {self.server} {self.sni} {self.host}".lower()
-        if "cyberportal" in raw_info or "white" in raw_info or "cidr" in raw_info or "bypass" in raw_info:
+        if any(k in raw_info for k in ["белые списки", "госуслуги", "x5.ru", "devtestadmin", "51.250.", "cyberportal", "white", "cidr", "bypass"]):
             return True
 
         target = (self.sni or self.host or "").lower().strip()
@@ -208,25 +213,31 @@ class ProxyNode:
         """Формирует красивое понятное имя ноды."""
         country_hint = "🌍"
         raw_upper = (self.name + " " + self.server + " " + (self.sni or "")).upper()
-        if "ИТАЛИЯ" in raw_upper or "IT" in raw_upper or "172.232." in raw_upper or "172.238." in raw_upper:
+        if "ИТАЛИЯ" in raw_upper or "ITALY" in raw_upper or "IT" in raw_upper or "172.232." in raw_upper or "172.238." in raw_upper:
             country_hint = "🇮🇹 IT"
-        elif "НИДЕРЛАНДЫ" in raw_upper or "NL" in raw_upper or "NETHERLAND" in raw_upper or "37.49." in raw_upper:
+        elif "НИДЕРЛАНДЫ" in raw_upper or "NETHERLAND" in raw_upper or "NL" in raw_upper or "37.49." in raw_upper:
             country_hint = "🇳🇱 NL"
-        elif "БРИТАНИЯ" in raw_upper or "GB" in raw_upper or "UK" in raw_upper or "95.154." in raw_upper or "78.129." in raw_upper:
+        elif "БРИТАНИЯ" in raw_upper or "UK" in raw_upper or "GB" in raw_upper or "95.154." in raw_upper or "78.129." in raw_upper:
             country_hint = "🇬🇧 GB"
-        elif "ШВЕЦИЯ" in raw_upper or "SE" in raw_upper or "SWEDEN" in raw_upper or "SWE.FRKN" in raw_upper:
+        elif "ШВЕЦИЯ" in raw_upper or "SWEDEN" in raw_upper or "SE" in raw_upper or "SWE.FRKN" in raw_upper:
             country_hint = "🇸🇪 SE"
-        elif "РУМЫНИЯ" in raw_upper or "RO" in raw_upper or "ROMANIA" in raw_upper or "185.156." in raw_upper:
+        elif "РУМЫНИЯ" in raw_upper or "ROMANIA" in raw_upper or "RO" in raw_upper or "185.156." in raw_upper:
             country_hint = "🇷🇴 RO"
-        elif "ИСПАНИЯ" in raw_upper or "ES" in raw_upper or "SPAIN" in raw_upper or "185.254." in raw_upper:
+        elif "ИСПАНИЯ" in raw_upper or "SPAIN" in raw_upper or "ES" in raw_upper or "185.254." in raw_upper:
             country_hint = "🇪🇸 ES"
-        elif "ГЕРМАНИЯ" in raw_upper or "DE" in raw_upper or "GERMANY" in raw_upper or "FRA" in raw_upper:
+        elif "ГЕРМАНИЯ" in raw_upper or "GERMANY" in raw_upper or "DE" in raw_upper or "FRA" in raw_upper:
             country_hint = "🇩🇪 DE"
-        elif "ФИНЛЯНДИЯ" in raw_upper or "FI" in raw_upper or "FINLAND" in raw_upper or "31.77." in raw_upper:
+        elif "ФИНЛЯНДИЯ" in raw_upper or "FINLAND" in raw_upper or "FI" in raw_upper or "31.77." in raw_upper:
             country_hint = "🇫🇮 FI"
-        elif "MANGSHE" in raw_upper or "CIDR" in raw_upper or "РОССИЯ" in raw_upper or "RU" in raw_upper:
+        elif "ЭСТОНИЯ" in raw_upper or "ESTONIA" in raw_upper or "EE" in raw_upper:
+            country_hint = "🇪🇪 EE"
+        elif "ПОЛЬША" in raw_upper or "POLAND" in raw_upper or "PL" in raw_upper:
+            country_hint = "🇵🇱 PL"
+        elif "ФРАНЦИЯ" in raw_upper or "FRANCE" in raw_upper or "FR" in raw_upper:
+            country_hint = "🇫🇷 FR"
+        elif "MANGSHE" in raw_upper or "CIDR" in raw_upper or "РОССИЯ" in raw_upper or "RUSSIA" in raw_upper or "RU" in raw_upper or "51.250." in raw_upper or "X5.RU" in raw_upper:
             country_hint = "🇷🇺 RU"
-        elif "США" in raw_upper or "US" in raw_upper or "UNITED STATES" in raw_upper:
+        elif "США" in raw_upper or "USA" in raw_upper or "US" in raw_upper:
             country_hint = "🇺🇸 US"
             
         proto_tag = self.protocol.upper()
@@ -809,24 +820,32 @@ class Aggregator:
         # Сортируем строго по задержке
         tested_pool.sort(key=lambda x: x.latency_ms)
 
-        # Выделяем группу Белые Списки РФ (CYBERPORTAL, CIDR White, RU SNI, Hysteria2 и порт 443)
+        # Выделяем группу Белые Списки РФ (devtestadmin, 51.250, x5.ru, mangshe, cidr white)
         wl_candidates = []
         fast_candidates = []
 
+        # Сначала добавляем проверенные узлы белых списков из платного провайдера и RU-обхода
+        for node in all_raw_nodes:
+            raw_t = f"{node.name} {node.server} {node.sni}".lower()
+            if any(k in raw_t for k in ["devtestadmin", "51.250.", "x5.ru", "белые списки", "госуслуги"]):
+                wl_candidates.append(node)
+
+        # Затем добавляем протестированные ноды с портами 443 и RU CIDR
         for node in tested_pool:
             txt = f"{node.name} {node.server} {node.sni}".upper()
             if any(k in txt for k in ["WHITE", "CIDR", "MANGSHE", "RU", "РОССИЯ", "YANDEX", "VK", "MAIL", "GOSUSLUGI"]) or node.port == 443:
-                wl_candidates.append(node)
+                if node not in wl_candidates:
+                    wl_candidates.append(node)
             else:
                 fast_candidates.append(node)
 
-        # Если в пуле Белых Списков мало узлов, дополняем лучшими из проверенных
+        # Если мало, дополняем проверенными
         for node in tested_pool:
             if node not in wl_candidates:
                 wl_candidates.append(node)
 
         import copy
-        top_g1 = [copy.deepcopy(n) for n in wl_candidates[:10]]
+        top_g1 = [copy.deepcopy(n) for n in wl_candidates[:12]]
         for idx, node in enumerate(top_g1, 1):
             node.group = "whitelist"
             node.name = node.clean_name("[⚡ Белые Списки]", idx)
