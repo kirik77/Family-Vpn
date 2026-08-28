@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Семейный VPN — Умные подписки (0 ₽)</title>
+  <meta name="description" content="Автоматически обновляемые VLESS, Shadowsocks и Reality подписки для всей семьи с обходом блокировок и белыми списками РФ.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- QRCode.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            heading: ['Outfit', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif']
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+            emergency: {
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #090d16;
+      color: #f1f5f9;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(245, 158, 11, 0.12) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
+    .glass-card {
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card-hover:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-2px);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glow-purple {
+      box-shadow: 0 0 35px -5px rgba(99, 102, 241, 0.25);
+    }
+    .glow-amber {
+      box-shadow: 0 0 35px -5px rgba(245, 158, 11, 0.2);
+    }
+    #qrcode img, #qrcode canvas {
+      margin: 0 auto;
+      border-radius: 12px;
+      padding: 8px;
+      background: white;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Навигация и Шапка -->
+  <header class="border-b border-slate-800/80 sticky top-0 z-50 glass-card">
+    <div class="max-w-4xl mx-auto px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-amber-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <span class="text-xl">🛡️</span>
+        </div>
+        <div>
+          <h1 class="font-heading font-bold text-lg text-white leading-tight">Семейный VPN</h1>
+          <p class="text-xs text-slate-400">Авто-обновление 24/7 • Без ограничений</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span id="status-badge" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>
+          Серверы онлайн
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Основной контент -->
+  <main class="max-w-4xl mx-auto px-4 py-8 flex-1 w-full space-y-8">
+
+    <!-- Баннер / Интро -->
+    <div class="text-center space-y-3 pt-2 pb-1">
+      <h2 class="font-heading text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+        Быстрый & Устойчивый интернет
+      </h2>
+      <p class="text-slate-300 text-sm sm:text-base max-w-xl mx-auto">
+        Единая умная ссылка с авто-тестированием пинга каждые 3 минуты и автоматическим обходом белых списков.
+      </p>
+    </div>
+
+    <!-- Информационные карточки 2-х режимов -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      
+      <!-- Режим 1: Быстрый Global -->
+      <div class="glass-card rounded-2xl p-6 relative overflow-hidden glow-purple border-t-2 border-t-indigo-500">
+        <div class="flex items-start justify-between">
+          <div class="space-y-1">
+            <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">Режим #1</span>
+            <h3 class="font-heading text-xl font-bold text-white flex items-center gap-2">
+              <span>🚀</span> Быстрый Global
+            </h3>
+          </div>
+          <span class="text-xs px-2.5 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30">
+            Основной
+          </span>
+        </div>
+        <p class="text-slate-300 text-sm mt-3">
+          Идеален для <strong>YouTube 4K, Instagram, ChatGPT, Twitch</strong> и стриминга. Серверы в Германии, Нидерландах и Финляндии с минимальным пингом.
+        </p>
+        <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+          <span>🎯 Тест: <code class="text-slate-300">google / cloudflare</code></span>
+          <span class="text-emerald-400 font-medium" id="global-ping-badge">⚡ ~35-60 ms</span>
+        </div>
+      </div>
+
+      <!-- Режим 2: Аварийный Whitelist -->
+      <div class="glass-card rounded-2xl p-6 relative overflow-hidden glow-amber border-t-2 border-t-amber-500">
+        <div class="flex items-start justify-between">
+          <div class="space-y-1">
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Режим #2</span>
+            <h3 class="font-heading text-xl font-bold text-white flex items-center gap-2">
+              <span>⚡</span> Обход Белых Списков
+            </h3>
+          </div>
+          <span class="text-xs px-2.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
+            Аварийный
+          </span>
+        </div>
+        <p class="text-slate-300 text-sm mt-3">
+          Включать <strong>при сбоях и жестких блокировках</strong>. Маскирует трафик под разрешенные в РФ сервисы (VK, Yandex, Gosuslugi, Mail.ru) через порты 443/80.
+        </p>
+        <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+          <span>🛡️ SNI: <code class="text-slate-300">vk.com, yandex.ru</code></span>
+          <span class="text-amber-400 font-medium" id="whitelist-ping-badge">⚡ ~20-45 ms</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Блок Подключения в 1 Клик и QR-код -->
+    <div class="glass-card rounded-3xl p-6 sm:p-8 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
+        <div>
+          <h3 class="font-heading text-xl font-bold text-white">⚡ Подключение в 1 клик</h3>
+          <p class="text-xs text-slate-400 mt-0.5">Нажмите кнопку установленного на вашем телефоне приложения</p>
+        </div>
+        
+        <!-- Выбор формата -->
+        <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs">
+          <button id="fmt-universal" onclick="setFormat('universal')" class="px-3 py-1.5 rounded-lg font-medium transition-all bg-brand-600 text-white shadow-sm">
+            Универсальная (Raw)
+          </button>
+          <button id="fmt-singbox" onclick="setFormat('singbox')" class="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all">
+            Sing-box
+          </button>
+          <button id="fmt-clash" onclick="setFormat('clash')" class="px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all">
+            Clash Meta
+          </button>
+        </div>
+      </div>
+
+      <!-- Кнопки Deep Links -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <a id="btn-hiddify" href="#" class="flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-500/25 transition-all active:scale-95">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Hiddify (Все ОС)
+        </a>
+        <a id="btn-streisand" href="#" class="flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold text-sm shadow-lg shadow-purple-500/25 transition-all active:scale-95">
+          <span class="text-base">🍏</span>
+          Streisand (iOS)
+        </a>
+        <a id="btn-v2rayng" href="#" class="flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-sm shadow-lg shadow-emerald-500/25 transition-all active:scale-95">
+          <span class="text-base">🤖</span>
+          v2rayNG (Android)
+        </a>
+      </div>
+
+      <!-- Прямая ссылка и QR-код -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-6 pt-2 items-center">
+        
+        <!-- Ссылка и копирование -->
+        <div class="md:col-span-8 space-y-3">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Прямой URL подписки для ручного ввода:
+          </label>
+          <div class="flex items-center space-x-2">
+            <input id="sub-url-input" type="text" readonly 
+              class="w-full bg-slate-900/90 border border-slate-700/80 text-indigo-300 font-mono text-xs rounded-xl px-3.5 py-3 focus:outline-none focus:border-indigo-500 select-all" 
+              value="Определение адреса...">
+            <button id="copy-btn" onclick="copySubscriptionUrl()" 
+              class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl border border-slate-700 transition-all flex items-center gap-1.5 whitespace-nowrap active:scale-95">
+              <span>📋</span> Копировать
+            </button>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            💡 <strong>Совет:</strong> В настройках приложения включите <em>«Автообновление подписки»</em> раз в 60 минут, чтобы всегда иметь свежие рабочие серверы.
+          </p>
+        </div>
+
+        <!-- QR-код -->
+        <div class="md:col-span-4 flex flex-col items-center justify-center p-4 bg-slate-900/60 rounded-2xl border border-slate-800">
+          <div id="qrcode" class="shadow-inner"></div>
+          <span class="text-[11px] text-slate-400 mt-2.5 font-medium">📷 Сканируйте камерой</span>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Инструкция по установке клиентов -->
+    <div class="space-y-4">
+      <h3 class="font-heading text-lg font-bold text-white flex items-center gap-2">
+        <span>📲</span> Рекомендуемые приложения для семьи
+      </h3>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        
+        <!-- iOS 1: Streisand -->
+        <div class="glass-card rounded-xl p-4 space-y-2.5 glass-card-hover flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-sm text-white">Streisand</span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">iOS</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Самый простой и красивый клиент для iPhone/iPad.</p>
+          </div>
+          <a href="https://apps.apple.com/app/streisand/id6450534064" target="_blank" rel="noopener noreferrer" 
+            class="text-xs text-center py-2 px-3 rounded-lg bg-slate-800/80 hover:bg-indigo-600 text-slate-200 hover:text-white font-medium transition-all block">
+            App Store ↗
+          </a>
+        </div>
+
+        <!-- iOS/Android: Hiddify -->
+        <div class="glass-card rounded-xl p-4 space-y-2.5 glass-card-hover flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-sm text-white">Hiddify</span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Все ОС</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Авто-выбор быстрых нод, поддержка ПК, Android и iOS.</p>
+          </div>
+          <a href="https://github.com/hiddify/hiddify-next/releases/latest" target="_blank" rel="noopener noreferrer" 
+            class="text-xs text-center py-2 px-3 rounded-lg bg-slate-800/80 hover:bg-indigo-600 text-slate-200 hover:text-white font-medium transition-all block">
+            Скачать Hiddify ↗
+          </a>
+        </div>
+
+        <!-- Android: v2rayNG -->
+        <div class="glass-card rounded-xl p-4 space-y-2.5 glass-card-hover flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-sm text-white">v2rayNG</span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">Android</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Классический надежный клиент для любых телефонов и планшетов.</p>
+          </div>
+          <a href="https://github.com/2dust/v2rayNG/releases/latest" target="_blank" rel="noopener noreferrer" 
+            class="text-xs text-center py-2 px-3 rounded-lg bg-slate-800/80 hover:bg-indigo-600 text-slate-200 hover:text-white font-medium transition-all block">
+            GitHub APK ↗
+          </a>
+        </div>
+
+        <!-- Windows / macOS / Linux -->
+        <div class="glass-card rounded-xl p-4 space-y-2.5 glass-card-hover flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-sm text-white">Mihomo Party</span>
+              <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">Windows / Mac</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Мощный GUI для Clash Meta под ноутбуки и компьютеры.</p>
+          </div>
+          <a href="https://github.com/mihomo-party-org/mihomo-party/releases/latest" target="_blank" rel="noopener noreferrer" 
+            class="text-xs text-center py-2 px-3 rounded-lg bg-slate-800/80 hover:bg-indigo-600 text-slate-200 hover:text-white font-medium transition-all block">
+            Скачать для ПК ↗
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Системный статус и сводка -->
+    <div class="glass-card rounded-2xl p-5 text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-4">
+        <div>
+          <span class="text-slate-500 block">Последнее обновление:</span>
+          <span id="stat-updated" class="text-slate-300 font-medium">Обновляется...</span>
+        </div>
+        <div class="border-l border-slate-800 pl-4">
+          <span class="text-slate-500 block">Активных серверов:</span>
+          <span id="stat-nodes" class="text-emerald-400 font-medium">25 узлов (10 Whitelist + 15 Global)</span>
+        </div>
+      </div>
+      <div class="text-right flex items-center gap-2">
+        <span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span class="text-slate-400">GitHub Actions CI/CD (0 ₽)</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Футер -->
+  <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
+    <p>Автономный семейный VPN-пайплайн • На базе открытых технологий VLESS, Reality & Sing-box</p>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-semibold z-50">
+    <span>✅</span> <span id="toast-text">Ссылка скопирована в буфер обмена!</span>
+  </div>
+
+  <!-- Скрипт логики приложения -->
+  <script>
+    let currentFormat = 'universal';
+    let qrcodeObj = null;
+
+    function getBaseUrl() {
+      const loc = window.location;
+      const cleanPath = loc.pathname.substring(0, loc.pathname.lastIndexOf('/') + 1);
+      return `${loc.protocol}//${loc.host}${cleanPath}`;
+    }
+
+    function getSubscriptionUrl(fmt) {
+      const baseUrl = getBaseUrl();
+      if (fmt === 'singbox') {
+        return `${baseUrl}singbox.json`;
+      } else if (fmt === 'clash') {
+        return `${baseUrl}clash.yaml`;
+      } else {
+        return `${baseUrl}sub.txt`;
+      }
+    }
+
+    function updateUI() {
+      const subUrl = getSubscriptionUrl(currentFormat);
+      const input = document.getElementById('sub-url-input');
+      if (input) input.value = subUrl;
+
+      // Кнопки Deep Link
+      const btnHiddify = document.getElementById('btn-hiddify');
+      const btnStreisand = document.getElementById('btn-streisand');
+      const btnV2rayng = document.getElementById('btn-v2rayng');
+
+      const rawSubUrl = getSubscriptionUrl('universal');
+      const singboxUrl = getSubscriptionUrl('singbox');
+      const clashUrl = getSubscriptionUrl('clash');
+
+      if (btnHiddify) {
+        btnHiddify.href = `hiddify://import/${rawSubUrl}#FamilyVPN`;
+      }
+      if (btnStreisand) {
+        btnStreisand.href = `streisand://import/${rawSubUrl}`;
+      }
+      if (btnV2rayng) {
+        btnV2rayng.href = `v2rayng://install-config?url=${encodeURIComponent(rawSubUrl)}`;
+      }
+
+      // Генерация QR-кода
+      renderQRCode(subUrl);
+    }
+
+    function setFormat(fmt) {
+      currentFormat = fmt;
+      
+      const btnUniv = document.getElementById('fmt-universal');
+      const btnSing = document.getElementById('fmt-singbox');
+      const btnClash = document.getElementById('fmt-clash');
+
+      [btnUniv, btnSing, btnClash].forEach(btn => {
+        btn.className = "px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition-all";
+      });
+
+      if (fmt === 'universal') {
+        btnUniv.className = "px-3 py-1.5 rounded-lg font-medium transition-all bg-brand-600 text-white shadow-sm";
+      } else if (fmt === 'singbox') {
+        btnSing.className = "px-3 py-1.5 rounded-lg font-medium transition-all bg-brand-600 text-white shadow-sm";
+      } else if (fmt === 'clash') {
+        btnClash.className = "px-3 py-1.5 rounded-lg font-medium transition-all bg-brand-600 text-white shadow-sm";
+      }
+
+      updateUI();
+    }
+
+    function renderQRCode(text) {
+      const container = document.getElementById('qrcode');
+      if (!container) return;
+      container.innerHTML = "";
+      
+      try {
+        qrcodeObj = new QRCode(container, {
+          text: text,
+          width: 140,
+          height: 140,
+          colorDark: "#090d16",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } catch (e) {
+        console.error("Ошибка создания QR-кода:", e);
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastText = document.getElementById('toast-text');
+      if (!toast) return;
+      if (toastText && msg) toastText.textContent = msg;
+      
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+
+    function copySubscriptionUrl() {
+      const input = document.getElementById('sub-url-input');
+      if (input) {
+        input.select();
+        navigator.clipboard.writeText(input.value).then(() => {
+          showToast("Ссылка на подписку скопирована!");
+        }).catch(() => {
+          document.execCommand('copy');
+          showToast("Ссылка на подписку скопирована!");
+        });
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const resp = await fetch('stats.json?t=' + Date.now());
+        if (resp.ok) {
+          const stats = await resp.json();
+          if (stats.updated_at_msk) {
+            document.getElementById('stat-updated').textContent = stats.updated_at_msk;
+          }
+          if (stats.total_active_nodes) {
+            document.getElementById('stat-nodes').textContent = 
+              `${stats.total_active_nodes} узлов (${stats.whitelist_nodes_count} Whitelist + ${stats.global_nodes_count} Global)`;
+          }
+          if (stats.top_global_ping) {
+            document.getElementById('global-ping-badge').textContent = `⚡ ~${stats.top_global_ping}`;
+          }
+          if (stats.top_whitelist_ping) {
+            document.getElementById('whitelist-ping-badge').textContent = `⚡ ~${stats.top_whitelist_ping}`;
+          }
+        }
+      } catch (e) {
+        console.log("Локальный запуск без stats.json, используются значения по умолчанию.");
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updateUI();
+      loadStats();
+    });
+  </script>
+</body>
+</html>

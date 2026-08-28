@@ -1,0 +1,75 @@
+name: Update & Deploy Family VPN Subscriptions
+
+on:
+  schedule:
+    # Запуск каждый час (0 * * * *)
+    - cron: '0 * * * *'
+  workflow_dispatch: # Возможность ручного запуска из интерфейса GitHub
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'src/**'
+      - 'web/**'
+      - 'requirements.txt'
+      - '.github/workflows/update.yml'
+
+# Права для публикации в GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Запрет параллельных деплоев
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: ⚡ Collect, Test & Generate Subscriptions
+        run: |
+          python src/aggregator.py
+
+      - name: 🔍 Verify Output Artifacts
+        run: |
+          echo "=== Проверка сгенерированных файлов в dist/ ==="
+          ls -la dist/
+          test -f dist/singbox.json || exit 1
+          test -f dist/clash.yaml || exit 1
+          test -f dist/sub.txt || exit 1
+          test -f dist/index.html || exit 1
+          test -f dist/stats.json || exit 1
+          echo "Все артефакты успешно созданы!"
+
+      - name: 🌐 Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: 📤 Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'dist'
+
+      - name: 🚀 Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
