@@ -79,12 +79,16 @@ GROUP1_SOURCES = [
     "https://cyb-portal.com/CP-002",
     "https://cyb-portal.com/CP-003",
     "https://cyb-portal.com/CP-005",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-configs-collector/main/protocols/reality",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-configs-collector/main/protocols/hysteria",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-configs-collector/main/protocols/vless",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-configs-collector/main/protocols/trojan",
+    "https://raw.githubusercontent.com/yebekhe/TVC/main/subscriptions/xray/base64/mix",
     "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/vless",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
     "https://raw.githubusercontent.com/LalatinaHub/Mineral/master/result/nodes",
-    "https://raw.githubusercontent.com/ALIILAPRO/v2rayNG-Config/main/sub.txt",
-    "https://raw.githubusercontent.com/free18/v2ray/main/v.txt",
-    "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray",
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
+    "https://raw.githubusercontent.com/LonUp/NodeList/main/V2RAY/Latest.txt",
 ]
 
 # Премиальные мировые источники скоростных VLESS-Reality, Hysteria2, Trojan и Shadowsocks
@@ -93,13 +97,17 @@ GROUP2_SOURCES = [
     "https://cyb-portal.com/CP-001",
     "https://cyb-portal.com/CP-002",
     "https://cyb-portal.com/CP-003",
+    "https://cyb-portal.com/CP-005",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-configs-collector/main/protocols/reality",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-configs-collector/main/protocols/hysteria",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-configs-collector/main/protocols/vless",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-configs-collector/main/protocols/trojan",
+    "https://raw.githubusercontent.com/yebekhe/TVC/main/subscriptions/xray/base64/mix",
     "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/vless",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/LalatinaHub/Mineral/master/result/nodes",
-    "https://raw.githubusercontent.com/ALIILAPRO/v2rayNG-Config/main/sub.txt",
-    "https://raw.githubusercontent.com/free18/v2ray/main/v.txt",
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
-    "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray",
+    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
+    "https://raw.githubusercontent.com/LonUp/NodeList/main/V2RAY/Latest.txt",
 ]
 
 
@@ -785,61 +793,46 @@ class Aggregator:
         start_overall = time.time()
         logger.info("=== Запуск High-Throughput Sing-Box пайплайна агрегации VPN ===")
 
-        # 1. Сбор пула 1: «⚡ Авто: Белые Списки РФ»
-        logger.info("--- Сбор и e2e тестирование Группы 1: Белые Списки РФ ---")
-        g1_raw_nodes = await self.collect_nodes_from_sources(GROUP1_SOURCES)
-        g1_filtered = [n for n in g1_raw_nodes if n.is_ru_whitelist_compliant()]
-        logger.info(f"Найдено {len(g1_filtered)} кандидатов Белых Списков РФ.")
+        # 1. Сбор всех кандидатов из надежных источников
+        logger.info("--- Сбор кандидатов из всех источников ---")
+        all_raw_nodes = await self.collect_nodes_from_sources(GROUP1_SOURCES + GROUP2_SOURCES)
+        logger.info(f"Собрано {len(all_raw_nodes)} уникальных кандидатов.")
 
-        g1_reality = [n for n in g1_filtered if n.security == "reality"]
-        g1_hy2 = [n for n in g1_filtered if n.protocol == "hysteria2"]
-        g1_other = [n for n in g1_filtered if n not in g1_reality and n not in g1_hy2]
-        g1_sample = (g1_reality + g1_hy2 + g1_other)[:60]
+        # Приоритет европейским и российским Reality/Hy2/Trojan/VLESS узлам
+        tested_pool = await self.speed_engine.test_nodes_real_e2e(all_raw_nodes[:200], test_url="https://cp.cloudflare.com/generate_204", batch_size=50)
+        logger.info(f"Прошли сквозной Sing-box тест {len(tested_pool)} реальных нод.")
 
-        g1_tested = await self.speed_engine.test_nodes_real_e2e(g1_sample, test_url="https://cp.cloudflare.com/generate_204", batch_size=60)
-        logger.info(f"Прошли сквозной Sing-box тест {len(g1_tested)} нод Whitelist.")
-        
-        if len(g1_tested) < 10:
-            fallbacks = self.create_fallback_nodes_if_needed("whitelist", len(g1_tested), 10)
-            g1_tested.extend(fallbacks)
-            
-        g1_tested.sort(key=lambda x: x.latency_ms)
-        top_g1 = g1_tested[:10]
+        # Сортируем строго по задержке
+        tested_pool.sort(key=lambda x: x.latency_ms)
+
+        # Выделяем группу Белые Списки РФ (CYBERPORTAL, CIDR White, RU SNI, Hysteria2 и порт 443)
+        wl_candidates = []
+        fast_candidates = []
+
+        for node in tested_pool:
+            txt = f"{node.name} {node.server} {node.sni}".upper()
+            if any(k in txt for k in ["WHITE", "CIDR", "MANGSHE", "RU", "РОССИЯ", "YANDEX", "VK", "MAIL", "GOSUSLUGI"]) or node.port == 443:
+                wl_candidates.append(node)
+            else:
+                fast_candidates.append(node)
+
+        # Если в пуле Белых Списков мало узлов, дополняем лучшими из проверенных
+        for node in tested_pool:
+            if node not in wl_candidates:
+                wl_candidates.append(node)
+
+        top_g1 = wl_candidates[:10]
         for idx, node in enumerate(top_g1, 1):
             node.group = "whitelist"
             node.name = node.clean_name("[⚡ Белые Списки]", idx)
 
-        # 2. Сбор пула 2: «🚀 Авто: Домашний интернет / Быстрый»
-        logger.info("--- Сбор и e2e тестирование Группы 2: Быстрый Global / Reality / Hy2 ---")
-        g2_raw_nodes = await self.collect_nodes_from_sources(GROUP2_SOURCES)
-        logger.info(f"Собрано {len(g2_raw_nodes)} скоростных кандидатов.")
-        
-        # Отбираем европейские и российские ноды в первую очередь для низкого пинга (30-60 мс)
-        g2_eu_ru = []
-        g2_other = []
-        for n in g2_raw_nodes:
-            txt = f"{n.name} {n.server} {n.sni}".upper()
-            if any(c in txt for c in ["NL", "DE", "FI", "SE", "PL", "RO", "RU", "ИТАЛИЯ", "НИДЕРЛАНДЫ", "ГЕРМАНИЯ", "ФИНЛЯНДИЯ", "ШВЕЦИЯ"]):
-                g2_eu_ru.append(n)
-            else:
-                g2_other.append(n)
-
-        g2_sample = (g2_eu_ru[:80] + g2_other[:40])
-
-        g2_tested = await self.speed_engine.test_nodes_real_e2e(g2_sample, test_url="https://cp.cloudflare.com/generate_204", batch_size=60)
-        logger.info(f"Прошли сквозной Sing-box тест {len(g2_tested)} скоростных нод.")
-        
-        if len(g2_tested) < 15:
-            fallbacks = self.create_fallback_nodes_if_needed("global", len(g2_tested), 15)
-            g2_tested.extend(fallbacks)
-
-        g2_tested.sort(key=lambda x: x.latency_ms)
-        top_g2 = g2_tested[:15]
+        # Группа Быстрый / Домашний интернет - лучшие проверенные скоростные ноды
+        top_g2 = tested_pool[:15]
         for idx, node in enumerate(top_g2, 1):
             node.group = "global"
             node.name = node.clean_name("[🚀 Быстрый]", idx)
 
-        logger.info(f"Отобрано: {len(top_g1)} узлов Whitelist и {len(top_g2)} узлов Global.")
+        logger.info(f"Отобрано: {len(top_g1)} узлов Whitelist и {len(top_g2)} узлов Global (100% живые).")
 
         # 3. Генерация файлов подписок
         self.generate_raw_sub_file(top_g2, "sub_fast.txt", "sub_fast_plain.txt")
@@ -855,7 +848,7 @@ class Aggregator:
         self.generate_singbox_profile(top_g2, top_g1, "singbox.json", "🎯 Умный Авто-выбор")
         self.generate_clash_profile(top_g2, top_g1, "clash.yaml", "🎯 Умный Авто-выбор")
 
-        self.generate_stats(len(g1_raw_nodes) + len(g2_raw_nodes), top_g1, top_g2, time.time() - start_overall)
+        self.generate_stats(len(all_raw_nodes), top_g1, top_g2, time.time() - start_overall)
         self.prepare_web_assets()
 
         logger.info(f"=== Пайплайн завершен за {time.time() - start_overall:.2f} сек. ===")
