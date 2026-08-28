@@ -826,29 +826,27 @@ class Aggregator:
         new_outbounds = []
         for item in config.get("outbounds", []):
             tag = item.get("tag", "")
-            if tag == "🎯 Выбор сервера":
-                item["tag"] = profile_name
-                selector_list = []
+            if tag == "🎯 Умный Авто-выбор":
+                item["outbounds"] = all_tags if all_tags else ["direct"]
+                new_outbounds.append(item)
+            elif tag == "🚀 Быстрый Global (Авто)":
                 if fast_tags:
-                    selector_list.append("🚀 Быстрый (Авто)")
+                    item["outbounds"] = fast_tags
+                    new_outbounds.append(item)
+            elif tag == "⚡ Белые Списки РФ (Авто)":
                 if white_tags:
-                    selector_list.append("⚡ Обход Белых Списков (Авто)")
+                    item["outbounds"] = white_tags
+                    new_outbounds.append(item)
+            elif tag == "🎯 Ручной выбор":
+                selector_list = ["🎯 Умный Авто-выбор"]
+                if fast_tags:
+                    selector_list.append("🚀 Быстрый Global (Авто)")
+                if white_tags:
+                    selector_list.append("⚡ Белые Списки РФ (Авто)")
                 selector_list.append("direct")
                 selector_list.extend(all_tags)
                 item["outbounds"] = selector_list
                 new_outbounds.append(item)
-            elif tag == "🚀 Быстрый (Авто)":
-                if fast_tags:
-                    item["outbounds"] = fast_tags
-                    item["interval"] = "2m"
-                    item["tolerance"] = 40
-                    new_outbounds.append(item)
-            elif tag == "⚡ Обход Белых Списков (Авто)":
-                if white_tags:
-                    item["outbounds"] = white_tags
-                    item["interval"] = "2m"
-                    item["tolerance"] = 40
-                    new_outbounds.append(item)
             else:
                 new_outbounds.append(item)
 
@@ -881,20 +879,29 @@ class Aggregator:
 
         proxy_groups = [
             {
-                "name": profile_name,
+                "name": "🎯 Умный Авто-выбор",
+                "type": "url-test",
+                "url": "https://cp.cloudflare.com/generate_204",
+                "interval": 120,
+                "tolerance": 40,
+                "proxies": all_names if all_names else ["DIRECT"]
+            },
+            {
+                "name": "🎯 Режим работы",
                 "type": "select",
                 "proxies": [
-                    "🚀 Быстрый (Авто)" if fast_names else None,
-                    "⚡ Обход Белых Списков (Авто)" if white_names else None,
+                    "🎯 Умный Авто-выбор",
+                    "🚀 Быстрый Global (Авто)" if fast_names else None,
+                    "⚡ Белые Списки РФ (Авто)" if white_names else None,
                     "DIRECT"
                 ]
             }
         ]
-        proxy_groups[0]["proxies"] = [p for p in proxy_groups[0]["proxies"] if p] + all_names
+        proxy_groups[1]["proxies"] = [p for p in proxy_groups[1]["proxies"] if p] + all_names
 
         if fast_names:
             proxy_groups.append({
-                "name": "🚀 Быстрый (Авто)",
+                "name": "🚀 Быстрый Global (Авто)",
                 "type": "url-test",
                 "url": "https://cp.cloudflare.com/generate_204",
                 "interval": 120,
@@ -904,7 +911,7 @@ class Aggregator:
 
         if white_names:
             proxy_groups.append({
-                "name": "⚡ Обход Белых Списков (Авто)",
+                "name": "⚡ Белые Списки РФ (Авто)",
                 "type": "url-test",
                 "url": "https://yandex.ru/generate_204",
                 "interval": 120,
@@ -940,7 +947,7 @@ class Aggregator:
                 "DOMAIN-SUFFIX,ru,DIRECT",
                 "GEOIP,RU,DIRECT",
                 "GEOIP,LAN,DIRECT,no-resolve",
-                f"MATCH,{profile_name}"
+                "MATCH,🎯 Умный Авто-выбор"
             ]
         }
 

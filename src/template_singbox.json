@@ -8,7 +8,7 @@
       {
         "tag": "remote-dns",
         "address": "https://1.1.1.1/dns-query",
-        "detour": "🎯 Выбор сервера"
+        "detour": "🎯 Умный Авто-выбор"
       },
       {
         "tag": "local-dns",
@@ -59,30 +59,39 @@
   ],
   "outbounds": [
     {
-      "type": "selector",
-      "tag": "🎯 Выбор сервера",
-      "outbounds": [
-        "🚀 Быстрый (Авто)",
-        "⚡ Обход Белых Списков (Авто)",
-        "direct"
-      ],
-      "default": "🚀 Быстрый (Авто)"
-    },
-    {
       "type": "urltest",
-      "tag": "🚀 Быстрый (Авто)",
+      "tag": "🎯 Умный Авто-выбор",
       "outbounds": [],
       "url": "https://cp.cloudflare.com/generate_204",
-      "interval": "3m",
-      "tolerance": 50
+      "interval": "2m",
+      "tolerance": 40
     },
     {
       "type": "urltest",
-      "tag": "⚡ Обход Белых Списков (Авто)",
+      "tag": "🚀 Быстрый Global (Авто)",
+      "outbounds": [],
+      "url": "https://cp.cloudflare.com/generate_204",
+      "interval": "2m",
+      "tolerance": 40
+    },
+    {
+      "type": "urltest",
+      "tag": "⚡ Белые Списки РФ (Авто)",
       "outbounds": [],
       "url": "https://yandex.ru/generate_204",
-      "interval": "3m",
-      "tolerance": 50
+      "interval": "2m",
+      "tolerance": 40
+    },
+    {
+      "type": "selector",
+      "tag": "🎯 Ручной выбор",
+      "outbounds": [
+        "🎯 Умный Авто-выбор",
+        "🚀 Быстрый Global (Авто)",
+        "⚡ Белые Списки РФ (Авто)",
+        "direct"
+      ],
+      "default": "🎯 Умный Авто-выбор"
     },
     {
       "type": "direct",
@@ -140,6 +149,6 @@
         "download_detour": "direct"
       }
     ],
-    "final": "🎯 Выбор сервера"
+    "final": "🎯 Умный Авто-выбор"
   }
 }
