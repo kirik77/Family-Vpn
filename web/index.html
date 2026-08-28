@@ -104,6 +104,19 @@
     <!-- ГЛАВНАЯ КАРТОЧКА ПОДКЛЮЧЕНИЯ (ВСЁ В ОДНОМ) -->
     <div class="glass-card rounded-3xl p-6 sm:p-8 space-y-6 glow-hero border-2 border-indigo-500/40 relative overflow-hidden">
       
+      <!-- ВЫБОР РЕЖИМА ПОДПИСКИ -->
+      <div class="flex flex-col sm:flex-row gap-2 p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800">
+        <button onclick="setMode('all')" id="tab-all" class="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-indigo-600 text-white shadow-md flex items-center justify-center gap-1.5">
+          <span>🎯</span> Всё в одном (Авто)
+        </button>
+        <button onclick="setMode('whitelist')" id="tab-whitelist" class="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
+          <span>⚡</span> Белые Списки РФ
+        </button>
+        <button onclick="setMode('fast')" id="tab-fast" class="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white flex items-center justify-center gap-1.5">
+          <span>🚀</span> Домашний интернет
+        </button>
+      </div>
+
       <!-- Преимущества умного режима -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pb-2">
         <div class="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800/80">
@@ -152,7 +165,7 @@
         
         <!-- Поле ссылки и копирование -->
         <div class="md:col-span-7 space-y-3">
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <label id="sub-label" class="block text-xs font-semibold uppercase tracking-wider text-slate-400">
             Прямой адрес подписки:
           </label>
           <div class="flex items-center space-x-2">
@@ -277,28 +290,53 @@
   </div>
 
   <script>
+    let currentMode = 'all';
+
     function getBaseUrl() {
       const loc = window.location;
       const cleanPath = loc.pathname.substring(0, loc.pathname.lastIndexOf('/') + 1);
       return `${loc.protocol}//${loc.host}${cleanPath}`;
     }
 
-    function getSubUrl() {
-      return `${getBaseUrl()}sub.txt`;
+    function getSubUrl(mode = currentMode) {
+      const base = getBaseUrl();
+      if (mode === 'whitelist') return `${base}sub_whitelist.txt`;
+      if (mode === 'fast') return `${base}sub_fast.txt`;
+      return `${base}sub.txt`;
     }
 
-    function initUI() {
-      const subUrl = getSubUrl();
+    function setMode(mode) {
+      currentMode = mode;
+      
+      // Обновляем вид табов
+      ['all', 'whitelist', 'fast'].forEach(m => {
+        const btn = document.getElementById(`tab-${m}`);
+        if (btn) {
+          if (m === mode) {
+            btn.className = "flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-indigo-600 text-white shadow-md flex items-center justify-center gap-1.5";
+          } else {
+            btn.className = "flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white flex items-center justify-center gap-1.5";
+          }
+        }
+      });
+
+      const subUrl = getSubUrl(mode);
       const input = document.getElementById('sub-url-input');
       if (input) input.value = subUrl;
 
-      // Кнопки Deep Links
-      document.getElementById('btn-hiddify').href = `hiddify://import/${subUrl}#FamilyVPN`;
+      // Обновляем кнопки приложений
+      const title = mode === 'whitelist' ? 'RU-Whitelist' : (mode === 'fast' ? 'RU-Fast' : 'FamilyVPN-All');
+      document.getElementById('btn-hiddify').href = `hiddify://import/${subUrl}#${title}`;
       document.getElementById('btn-streisand').href = `streisand://import/${subUrl}`;
       document.getElementById('btn-v2rayng').href = `v2rayng://install-config?url=${encodeURIComponent(subUrl)}`;
 
-      // Рендерим QR-код
+      // Обновляем QR
       renderQRCode(subUrl);
+      showToast(`Выбран режим: ${mode === 'whitelist' ? '⚡ Белые Списки РФ' : (mode === 'fast' ? '🚀 Домашний интернет' : '🎯 Всё в одном')}`);
+    }
+
+    function initUI() {
+      setMode('all');
     }
 
     function renderQRCode(text) {

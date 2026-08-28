@@ -821,13 +821,14 @@ class Aggregator:
             if node not in wl_candidates:
                 wl_candidates.append(node)
 
-        top_g1 = wl_candidates[:10]
+        import copy
+        top_g1 = [copy.deepcopy(n) for n in wl_candidates[:10]]
         for idx, node in enumerate(top_g1, 1):
             node.group = "whitelist"
             node.name = node.clean_name("[⚡ Белые Списки]", idx)
 
         # Группа Быстрый / Домашний интернет - лучшие проверенные скоростные ноды
-        top_g2 = tested_pool[:15]
+        top_g2 = [copy.deepcopy(n) for n in tested_pool[:15]]
         for idx, node in enumerate(top_g2, 1):
             node.group = "global"
             node.name = node.clean_name("[🚀 Быстрый]", idx)
