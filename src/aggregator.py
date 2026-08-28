@@ -74,7 +74,6 @@ RU_WHITELIST_DOMAINS = [
 
 # Источники для обхода блокировок РФ и белых списков
 GROUP1_SOURCES = [
-    "https://your-durev.com/sub/KqIeuDfTNW6LhL6T6S9Nun",
     "https://cyb-portal.com/CP-006",
     "https://cyb-portal.com/CP-001",
     "https://cyb-portal.com/CP-002",
@@ -93,7 +92,6 @@ GROUP1_SOURCES = [
 
 # Премиальные мировые источники скоростных VLESS-Reality, Hysteria2, Trojan и Shadowsocks
 GROUP2_SOURCES = [
-    "https://your-durev.com/sub/KqIeuDfTNW6LhL6T6S9Nun",
     "https://cyb-portal.com/CP-006",
     "https://cyb-portal.com/CP-001",
     "https://cyb-portal.com/CP-002",
