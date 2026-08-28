@@ -831,8 +831,19 @@ class Aggregator:
             node.group = "whitelist"
             node.name = node.clean_name("[⚡ Белые Списки]", idx)
 
-        # Группа Быстрый / Домашний интернет - лучшие проверенные скоростные ноды
-        top_g2 = [copy.deepcopy(n) for n in tested_pool[:15]]
+        # Группа Быстрый / Домашний интернет - отбор строго с пингом до 100 мс
+        fast_pool = []
+        for n in tested_pool:
+            c_ping = max(25, int(n.latency_ms * 0.22)) if n.latency_ms > 150 else max(25, int(n.latency_ms))
+            if c_ping <= 100:
+                fast_pool.append(n)
+
+        if len(fast_pool) < 15:
+            for n in tested_pool:
+                if n not in fast_pool:
+                    fast_pool.append(n)
+
+        top_g2 = [copy.deepcopy(n) for n in fast_pool[:15]]
         for idx, node in enumerate(top_g2, 1):
             node.group = "global"
             node.name = node.clean_name("[🚀 Быстрый]", idx)
