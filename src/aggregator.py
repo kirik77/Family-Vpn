@@ -74,6 +74,7 @@ RU_WHITELIST_DOMAINS = [
 
 # Источники для обхода блокировок РФ и белых списков
 GROUP1_SOURCES = [
+    "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
     "https://cyb-portal.com/CP-006",
     "https://cyb-portal.com/CP-001",
     "https://cyb-portal.com/CP-002",
@@ -92,6 +93,7 @@ GROUP1_SOURCES = [
 
 # Премиальные мировые источники скоростных VLESS-Reality, Hysteria2, Trojan и Shadowsocks
 GROUP2_SOURCES = [
+    "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
     "https://cyb-portal.com/CP-006",
     "https://cyb-portal.com/CP-001",
     "https://cyb-portal.com/CP-002",
@@ -142,7 +144,7 @@ class ProxyNode:
     def is_junk_node(self) -> bool:
         """Отсеивает медленные/мусорные прокси."""
         raw_info = f"{self.name} {self.server} {self.sni} {self.host}".lower()
-        if any(k in raw_info for k in ["cloudpath", "devtestadmin", "51.250.", "x5.ru", "белые списки", "госуслуги", "mangshe", "cidr", "white"]):
+        if any(k in raw_info for k in ["persik", "aeza", "beget", "cloudpath", "devtestadmin", "51.250.", "x5.ru", "белые списки", "госуслуги", "mangshe", "cidr", "white"]):
             return False
 
         if self.type in ["ws", "http"] and not any(k in raw_info for k in [".ru", "devtestadmin", "mirra"]):
@@ -193,7 +195,7 @@ class ProxyNode:
     def is_ru_whitelist_compliant(self) -> bool:
         """Проверка: порт и SNI/Host/Имя из белого списка РФ."""
         raw_info = f"{self.name} {self.server} {self.sni} {self.host}".lower()
-        if any(k in raw_info for k in ["белые списки", "госуслуги", "x5.ru", "devtestadmin", "51.250.", "cyberportal", "white", "cidr", "bypass"]):
+        if any(k in raw_info for k in ["persik", "aeza", "beget", "белые списки", "госуслуги", "x5.ru", "devtestadmin", "51.250.", "cyberportal", "white", "cidr", "bypass"]):
             return True
 
         target = (self.sni or self.host or "").lower().strip()
@@ -231,7 +233,7 @@ class ProxyNode:
             country_hint = "🇵🇱 PL"
         elif "ФРАНЦИЯ" in raw_upper or "FRANCE" in raw_upper or "FR" in raw_upper:
             country_hint = "🇫🇷 FR"
-        elif "MANGSHE" in raw_upper or "CIDR" in raw_upper or "РОССИЯ" in raw_upper or "RUSSIA" in raw_upper or "RU" in raw_upper or "51.250." in raw_upper or "X5.RU" in raw_upper:
+        elif "AEZA" in raw_upper or "BEGET" in raw_upper or "PERSIK" in raw_upper or "MANGSHE" in raw_upper or "CIDR" in raw_upper or "РОССИЯ" in raw_upper or "RUSSIA" in raw_upper or "RU" in raw_upper or "51.250." in raw_upper or "X5.RU" in raw_upper:
             country_hint = "🇷🇺 RU"
         elif "США" in raw_upper or "USA" in raw_upper or "US" in raw_upper:
             country_hint = "🇺🇸 US"
@@ -816,14 +818,14 @@ class Aggregator:
         # Сортируем строго по задержке
         tested_pool.sort(key=lambda x: x.latency_ms)
 
-        # Выделяем группу Белые Списки РФ (devtestadmin, 51.250, x5.ru, mangshe, cidr white)
+        # Выделяем группу Белые Списки РФ (zieng2, persik, beget, aeza, x5.ru, 31.177, mangshe, cidr white)
         wl_candidates = []
         fast_candidates = []
 
-        # Сначала добавляем проверенные узлы белых списков из платного провайдера и RU-обхода
+        # Сначала добавляем проверенные узлы белых списков из специализированных источников
         for node in all_raw_nodes:
             raw_t = f"{node.name} {node.server} {node.sni}".lower()
-            if any(k in raw_t for k in ["devtestadmin", "51.250.", "x5.ru", "белые списки", "госуслуги"]):
+            if any(k in raw_t for k in ["persik", "aeza", "beget", "31.177.", "x5.ru", "51.250.", "белые списки", "госуслуги"]):
                 wl_candidates.append(node)
 
         # Затем добавляем протестированные ноды с портами 443 и RU CIDR
@@ -841,7 +843,7 @@ class Aggregator:
                 wl_candidates.append(node)
 
         import copy
-        top_g1 = [copy.deepcopy(n) for n in wl_candidates[:12]]
+        top_g1 = [copy.deepcopy(n) for n in wl_candidates[:15]]
         for idx, node in enumerate(top_g1, 1):
             node.group = "whitelist"
             node.name = node.clean_name("[⚡ Белые Списки]", idx)
