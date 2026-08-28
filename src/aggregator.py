@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Family VPN Subscription Pipeline — High-Quality Edition
-High-Performance Aggregator, Quality-Scorer & Health-Tester
-Filters out slow/dead proxies and prioritizes high-speed VLESS-Reality & Trojan.
+Aggregates and verifies high-speed VLESS-Reality, Hysteria2, Trojan, and Shadowsocks.
+Integrates CYBERPORTAL whitelist feeds and top-tier global Reality nodes.
 """
 
 import os
@@ -64,37 +64,40 @@ RU_WHITELIST_DOMAINS = [
     "ozon.ru",
     "wildberries.ru",
     "avito.ru",
-    "mos.ru"
+    "mos.ru",
+    "cloud-s3.xyz",
+    "mangshe.xyz",
+    "mirra.now"
 ]
 
-# Источники для обхода блокировок РФ и белых списков (Reality, VLESS с SNI)
+# Источники для обхода блокировок РФ и белых списков
 GROUP1_SOURCES = [
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/vless",
-    "https://raw.githubusercontent.com/mftb0101/Free-Vless/main/sub.txt",
-    "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray",
+    "https://cyb-portal.com/CP-006",
+    "https://cyb-portal.com/CP-001",
+    "https://cyb-portal.com/CP-002",
+    "https://cyb-portal.com/CP-003",
+    "https://cyb-portal.com/CP-004",
+    "https://cyb-portal.com/CP-005",
     "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/reality.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/vless.txt",
     "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/reality.txt",
-    "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/vless.txt",
     "https://raw.githubusercontent.com/yebekhe/TVC/main/subscriptions/xray/normal/reality",
-    "https://raw.githubusercontent.com/yebekhe/TVC/main/subscriptions/xray/normal/vless",
-    "https://raw.githubusercontent.com/MrPooyaX/VmessProtocol/main/reality.txt",
-    "https://raw.githubusercontent.com/MrPooyaX/VmessProtocol/main/vless.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
+    "https://raw.githubusercontent.com/mftb0101/Free-Vless/main/sub.txt",
 ]
 
-# Премиальные мировые источники скоростных VLESS-Reality, Trojan и Shadowsocks
+# Премиальные мировые источники скоростных VLESS-Reality, Hysteria2, Trojan и Shadowsocks
 GROUP2_SOURCES = [
+    "https://cyb-portal.com/CP-006",
+    "https://cyb-portal.com/CP-001",
     "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/reality.txt",
     "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/reality.txt",
     "https://raw.githubusercontent.com/yebekhe/TVC/main/subscriptions/xray/normal/reality",
     "https://raw.githubusercontent.com/snakem982/proxypool/main/source/reality.txt",
-    "https://raw.githubusercontent.com/MrPooyaX/VmessProtocol/main/reality.txt",
     "https://raw.githubusercontent.com/LalatinaHub/Mineral/master/result/nodes",
+    "https://raw.githubusercontent.com/MrPooyaX/VmessProtocol/main/reality.txt",
     "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/trojan.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/trojan.txt",
     "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/ss.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/ss.txt",
 ]
 
 
@@ -130,32 +133,28 @@ class ProxyNode:
         self.insecure: bool = False
 
     def is_junk_node(self) -> bool:
-        """Отсеивает медленные/мусорные прокси (бесплатные worker-релеи, порт 80 без шифрования и т.д.)."""
-        # Отсеиваем медленные HTTP/WS релеи на незащищенных портах
+        """Отсеивает медленные/мусорные прокси (бесплатные worker-релеи, незашифрованные порты 80 и т.д.)."""
         if self.port in [80, 8080, 8880, 2052, 2082, 2086, 2095] and self.security not in ["tls", "reality"]:
             return True
 
-        # Отсеиваем домены-релеи Cloudflare Workers с лимитами скорости 100 KB/s
         target = f"{self.server or ''} {self.host or ''} {self.sni or ''}".lower()
         slow_domains = ["trycloudflare.com", "workers.dev", "pages.dev", "hf.space", "onrender.com", "glitch.me"]
         if any(sd in target for sd in slow_domains):
             return True
 
-        # VLESS без UUID или Shadowsocks без пароля — мусор
         if self.protocol == "vless" and (not self.uuid or len(self.uuid) < 16):
             return True
-        if self.protocol == "shadowsocks" and not self.password:
-            return True
-        if self.protocol == "trojan" and not self.password:
+        if self.protocol in ["shadowsocks", "trojan", "hysteria2"] and not self.password:
             return True
 
         return False
 
     def is_ru_whitelist_compliant(self) -> bool:
-        """Проверка: порт 443/8443/80 и SNI/Host из белого списка РФ."""
-        if self.port not in [443, 80, 8443, 2053, 2083, 2087, 2096]:
-            return False
-            
+        """Проверка: порт и SNI/Host/Имя из белого списка РФ."""
+        raw_info = f"{self.name} {self.server} {self.sni} {self.host}".lower()
+        if "cyberportal" in raw_info or "white" in raw_info or "cidr" in raw_info or "bypass" in raw_info:
+            return True
+
         target = (self.sni or self.host or "").lower().strip()
         if not target:
             return False
@@ -169,26 +168,28 @@ class ProxyNode:
         """Формирует красивое понятное имя ноды."""
         country_hint = "🌍"
         raw_upper = (self.name + " " + self.server).upper()
-        if "RU" in raw_upper or self.is_ru_whitelist_compliant():
+        if "RU" in raw_upper or "РОССИЯ" in raw_upper or self.is_ru_whitelist_compliant():
             country_hint = "🇷🇺 RU"
         elif "DE" in raw_upper or "GERMANY" in raw_upper or "FRA" in raw_upper:
             country_hint = "🇩🇪 DE"
-        elif "NL" in raw_upper or "NETHERLANDS" in raw_upper or "AMS" in raw_upper:
+        elif "NL" in raw_upper or "NETHERLANDS" in raw_upper or "НИДЕРЛАНДЫ" in raw_upper:
             country_hint = "🇳🇱 NL"
-        elif "FI" in raw_upper or "FINLAND" in raw_upper or "HEL" in raw_upper:
+        elif "FI" in raw_upper or "FINLAND" in raw_upper or "ФИНЛЯНДИЯ" in raw_upper:
             country_hint = "🇫🇮 FI"
-        elif "SE" in raw_upper or "SWEDEN" in raw_upper or "STO" in raw_upper:
+        elif "SE" in raw_upper or "SWEDEN" in raw_upper or "ШВЕЦИЯ" in raw_upper:
             country_hint = "🇸🇪 SE"
-        elif "US" in raw_upper or "UNITED STATES" in raw_upper:
+        elif "US" in raw_upper or "UNITED STATES" in raw_upper or "США" in raw_upper:
             country_hint = "🇺🇸 US"
-        elif "GB" in raw_upper or "UK" in raw_upper or "LON" in raw_upper:
-            country_hint = "🇬🇧 UK"
-        elif "TR" in raw_upper or "TURKEY" in raw_upper:
-            country_hint = "🇹🇷 TR"
+        elif "PL" in raw_upper or "ПОЛЬША" in raw_upper:
+            country_hint = "🇵🇱 PL"
+        elif "RO" in raw_upper or "РУМЫНИЯ" in raw_upper:
+            country_hint = "🇷🇴 RO"
             
         proto_tag = self.protocol.upper()
         if self.security == "reality":
             proto_tag = "Reality-4K"
+        elif self.protocol == "hysteria2":
+            proto_tag = "Hy2-Turbo"
         elif self.protocol == "trojan":
             proto_tag = "Trojan-TLS"
         elif self.protocol == "shadowsocks":
@@ -253,6 +254,14 @@ class ProxyNode:
                         "short_id": self.sid
                     }
                 outbound["tls"] = tls_conf
+
+        elif self.protocol == "hysteria2":
+            outbound["password"] = self.password
+            outbound["tls"] = {
+                "enabled": True,
+                "server_name": self.sni or self.server,
+                "insecure": self.insecure
+            }
 
         elif self.protocol == "shadowsocks":
             outbound["method"] = self.method or "chacha20-ietf-poly1305"
@@ -345,6 +354,14 @@ class ProxyNode:
                     "grpc-service-name": self.path or ""
                 }
 
+        elif self.protocol == "hysteria2":
+            proxy["type"] = "hysteria2"
+            proxy["password"] = self.password
+            if self.sni:
+                proxy["sni"] = self.sni
+            if self.insecure:
+                proxy["skip-cert-verify"] = True
+
         elif self.protocol == "shadowsocks":
             proxy["type"] = "ss"
             proxy["cipher"] = self.method or "chacha20-ietf-poly1305"
@@ -417,6 +434,28 @@ class ProtocolParser:
                 if alpn_str:
                     node.alpn = [x.strip() for x in alpn_str.split(",") if x.strip()]
                 node.insecure = params.get("allowInsecure", ["0"])[0] in ["1", "true", "True"]
+            return node
+        except Exception:
+            return None
+
+    @staticmethod
+    def parse_hysteria2(url: str) -> Optional[ProxyNode]:
+        try:
+            clean_url = url.replace("hy2://", "hysteria2://")
+            m = re.match(r"hysteria2://([^@]+)@([^:/?#]+):(\d+)(?:\?([^#]*))?(?:#(.*))?", clean_url, re.IGNORECASE)
+            if not m:
+                return None
+            password, server, port_s, query_s, tag = m.groups()
+            tag = urllib.parse.unquote(tag or "")
+            node = ProxyNode("hysteria2", server, int(port_s), tag, url)
+            node.password = urllib.parse.unquote(password)
+            node.security = "tls"
+
+            if query_s:
+                params = urllib.parse.parse_qs(query_s)
+                node.sni = params.get("sni", [""])[0]
+                node.host = params.get("host", [""])[0]
+                node.insecure = params.get("insecure", ["0"])[0] in ["1", "true", "True"] or params.get("allowInsecure", ["0"])[0] in ["1", "true", "True"]
             return node
         except Exception:
             return None
@@ -531,6 +570,8 @@ class ProtocolParser:
             
         if line.startswith("vless://"):
             return cls.parse_vless(line)
+        elif line.startswith(("hysteria2://", "hy2://")):
+            return cls.parse_hysteria2(line)
         elif line.startswith("trojan://"):
             return cls.parse_trojan(line)
         elif line.startswith("ss://"):
@@ -559,20 +600,20 @@ class Aggregator:
                     if resp.status == 200:
                         text = await resp.text(errors="ignore")
                         stripped = text.strip()
-                        if not stripped.startswith(("vless://", "trojan://", "ss://", "vmess://")):
+                        if not stripped.startswith(("vless://", "trojan://", "ss://", "vmess://", "hysteria2://", "hy2://")):
                             try:
                                 padding = 4 - len(stripped) % 4
                                 if padding != 4:
                                     stripped += "=" * padding
                                 decoded = base64.b64decode(stripped).decode("utf-8", errors="ignore")
-                                if any(proto in decoded for proto in ["vless://", "ss://", "trojan://"]):
+                                if any(proto in decoded for proto in ["vless://", "ss://", "trojan://", "hysteria2://"]):
                                     text = decoded
                             except Exception:
                                 pass
                         
                         for line in text.splitlines():
                             line = line.strip()
-                            if line.startswith(("vless://", "trojan://", "ss://", "vmess://")):
+                            if line.startswith(("vless://", "trojan://", "ss://", "vmess://", "hysteria2://", "hy2://")):
                                 lines.append(line)
         except Exception as e:
             logger.warning(f"Ошибка загрузки источника: {e}")
@@ -608,7 +649,7 @@ class Aggregator:
                 timeout=timeout
             )
             
-            if node.security in ["tls", "reality"] or node.protocol == "trojan":
+            if node.security in ["tls", "reality"] or node.protocol in ["trojan", "hysteria2"]:
                 try:
                     ssl_ctx = ssl.create_default_context()
                     ssl_ctx.check_hostname = False
@@ -637,19 +678,13 @@ class Aggregator:
             return False, 9999.0
 
     async def check_node_quality(self, node: ProxyNode, max_timeout: float = 2.0) -> bool:
-        """
-        Двойной замер задержки (Double-Probe) для проверки стабильности и джиттера.
-        Исключает нестабильные и зависающие узлы.
-        """
-        # Замер 1
+        """Двойной замер задержки (Double-Probe) для проверки стабильности и джиттера."""
         ok1, rtt1 = await self.single_probe(node, timeout=max_timeout)
         if not ok1 or rtt1 > (max_timeout * 1000.0):
             return False
             
-        # Короткая пауза 100мс между замерами
         await asyncio.sleep(0.1)
         
-        # Замер 2
         ok2, rtt2 = await self.single_probe(node, timeout=max_timeout)
         if not ok2 or rtt2 > (max_timeout * 1000.0):
             return False
@@ -657,25 +692,22 @@ class Aggregator:
         avg_latency = (rtt1 + rtt2) / 2.0
         jitter = abs(rtt1 - rtt2)
         
-        # Бонус за Reality (самый стабильный протокол с защитой от DPI)
-        reality_bonus = -15.0 if node.security == "reality" else 0.0
+        # Бонус за Reality и Hysteria2
+        bonus = -20.0 if node.security == "reality" or node.protocol == "hysteria2" else 0.0
         
         node.is_alive = True
         node.latency_ms = round(avg_latency, 1)
         node.jitter_ms = round(jitter, 1)
-        # Оценка качества: средний пинг + штраф за джиттер + бонус за Reality
-        node.quality_score = round(avg_latency + (jitter * 1.5) + reality_bonus, 1)
+        node.quality_score = round(avg_latency + (jitter * 1.5) + bonus, 1)
         return True
 
     async def test_pool(self, nodes: List[ProxyNode], max_timeout: float = 2.0, sample_size: int = 400, concurrency: int = 60) -> List[ProxyNode]:
         """Тестирует отобранный пул серверов на двойной пинг и стабильность."""
-        # Приоритет Reality и VLESS узлам
-        reality_nodes = [n for n in nodes if n.security == "reality"]
+        reality_nodes = [n for n in nodes if n.security == "reality" or n.protocol == "hysteria2"]
         trojan_nodes = [n for n in nodes if n.protocol == "trojan"]
         ss_nodes = [n for n in nodes if n.protocol == "shadowsocks"]
-        other_nodes = [n for n in nodes if n.security != "reality" and n.protocol not in ["trojan", "shadowsocks"]]
+        other_nodes = [n for n in nodes if n not in reality_nodes and n not in trojan_nodes and n not in ss_nodes]
         
-        # Формируем лучший пул для теста
         test_subset = reality_nodes[:200] + trojan_nodes[:100] + ss_nodes[:50] + other_nodes[:50]
         if len(test_subset) < sample_size and len(nodes) > len(test_subset):
             extra = [n for n in nodes if n not in test_subset]
@@ -753,7 +785,7 @@ class Aggregator:
             node.name = node.clean_name("[⚡ Белые Списки]", idx)
 
         # 2. Сбор пула 2: «🚀 Авто: Домашний интернет / Быстрый»
-        logger.info("--- Сбор и тестирование Группы 2: Быстрый Global / Reality ---")
+        logger.info("--- Сбор и тестирование Группы 2: Быстрый Global / Reality / Hy2 ---")
         g2_raw_nodes = await self.collect_nodes_from_sources(GROUP2_SOURCES)
         logger.info(f"Собрано {len(g2_raw_nodes)} скоростных кандидатов без мусора.")
         
@@ -764,7 +796,6 @@ class Aggregator:
             fallbacks = self.create_fallback_nodes_if_needed("global", len(g2_tested), 15)
             g2_tested.extend(fallbacks)
 
-        # Сортируем по показателю качества (пинг + джиттер + стабильность)
         g2_tested.sort(key=lambda x: x.quality_score)
         top_g2 = g2_tested[:15]
         for idx, node in enumerate(top_g2, 1):
@@ -782,9 +813,10 @@ class Aggregator:
         self.generate_singbox_profile([], top_g1, "singbox_whitelist.json", "⚡ Авто: Белые Списки РФ")
         self.generate_clash_profile([], top_g1, "clash_whitelist.yaml", "⚡ Авто: Белые Списки РФ")
 
+        # Главная единая подписка (Smart Auto)
         self.generate_raw_sub_file(top_g2 + top_g1, "sub.txt", "sub_plain.txt")
-        self.generate_singbox_profile(top_g2, top_g1, "singbox.json", "🎯 Умный выбор")
-        self.generate_clash_profile(top_g2, top_g1, "clash.yaml", "🎯 Умный выбор")
+        self.generate_singbox_profile(top_g2, top_g1, "singbox.json", "🎯 Умный Авто-выбор")
+        self.generate_clash_profile(top_g2, top_g1, "clash.yaml", "🎯 Умный Авто-выбор")
 
         self.generate_stats(len(g1_raw_nodes) + len(g2_raw_nodes), top_g1, top_g2, time.time() - start_overall)
         self.prepare_web_assets()
