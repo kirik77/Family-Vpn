@@ -74,6 +74,7 @@ RU_WHITELIST_DOMAINS = [
 
 # Источники для обхода блокировок РФ и белых списков
 GROUP1_SOURCES = [
+    "https://your-durev.com/sub/KqIeuDfTNW6LhL6T6S9Nun",
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
     "https://cyb-portal.com/CP-006",
     "https://cyb-portal.com/CP-001",
@@ -93,6 +94,7 @@ GROUP1_SOURCES = [
 
 # Премиальные мировые источники скоростных VLESS-Reality, Hysteria2, Trojan и Shadowsocks
 GROUP2_SOURCES = [
+    "https://your-durev.com/sub/KqIeuDfTNW6LhL6T6S9Nun",
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
     "https://cyb-portal.com/CP-006",
     "https://cyb-portal.com/CP-001",
@@ -822,24 +824,25 @@ class Aggregator:
         wl_candidates = []
         fast_candidates = []
 
-        # 1. Приоритет нодам с легитимными SNI из белых списков РФ и российскими облаками
-        for node in all_raw_nodes:
-            raw_s = f"{node.name} {node.server} {node.sni}".lower()
-            if any(k in raw_s for k in ["ads.x5.ru", "5post", "eda.x5.ru", "api-maps.yandex.ru", "storage.yandex.net", "yandex.ru", "ya.ru", "vk.com", "m.vk.com", "gosuslugi", "persik.host", "51.250.", "31.177.", "89.223.", "176.109.", "31.129."]):
-                if node.port in [443, 8443, 9443, 26424, 56443, 62443] and node not in wl_candidates:
+        # 1. Приоритет проверенным эталонным узлам белых списков (Spain 2, Italy 2, devtestadmin, 51.250, x5.ru, russia)
+        priority_keywords = [
+            "spain 2", "51.250.69.41", "italy 2", "51.250.3.73", "devtestadmin", "russiayt", "russia.cloudpath", "31.177.111.144",
+            "ads.x5.ru", "5post-gate.x5.ru", "eda.x5.ru", "51.250.", "api-maps.yandex.ru", "storage.yandex.net", "360.yandex.ru"
+        ]
+        for kw in priority_keywords:
+            for node in all_raw_nodes:
+                raw_s = f"{node.name} {node.server} {node.sni} {node.host}".lower()
+                if kw in raw_s and node not in wl_candidates:
                     wl_candidates.append(node)
 
-        # 2. Затем добавляем протестированные скоростные ноды с портом 443
-        for node in tested_pool:
-            txt = f"{node.name} {node.server} {node.sni}".upper()
-            if any(k in txt for k in ["X5.RU", "YANDEX", "VK", "MAIL", "GOSUSLUGI", "BEGET", "AEZA", "PERSIK", "51.250."]):
+        # 2. Затем остальные ноды с RU SNI / доменами
+        for node in all_raw_nodes:
+            raw_s = f"{node.name} {node.server} {node.sni} {node.host}".lower()
+            if any(k in raw_s for k in ["yandex.ru", "ya.ru", "vk.com", "m.vk.com", "gosuslugi", "persik.host", "31.177.", "89.223.", "176.109.", "31.129."]):
                 if node not in wl_candidates:
                     wl_candidates.append(node)
 
-        for node in tested_pool:
-            if node not in wl_candidates and node.port == 443:
-                wl_candidates.append(node)
-
+        # 3. Затем протестированные ноды из tested_pool
         for node in tested_pool:
             if node not in wl_candidates:
                 wl_candidates.append(node)
