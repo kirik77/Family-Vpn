@@ -1,0 +1,1 @@
+{"log": {"level": "error"}, "experimental": {"clash_api": {"external_controller": "127.0.0.1:9090"}}, "inbounds": [{"type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": 20808}], "outbounds": [{"type": "direct", "tag": "direct"}]}

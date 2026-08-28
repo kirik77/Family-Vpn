@@ -1,0 +1,536 @@
+{
+  "log": {
+    "level": "error"
+  },
+  "experimental": {
+    "clash_api": {
+      "external_controller": "127.0.0.1:9090"
+    }
+  },
+  "inbounds": [
+    {
+      "type": "mixed",
+      "tag": "mixed-in",
+      "listen": "127.0.0.1",
+      "listen_port": 20808
+    }
+  ],
+  "outbounds": [
+    {
+      "tag": "n_2450_0",
+      "type": "shadowsocks",
+      "server": "156.146.38.170",
+      "server_port": 443,
+      "method": "aes-128-gcm",
+      "password": "shadowsocks"
+    },
+    {
+      "tag": "n_2450_1",
+      "type": "shadowsocks",
+      "server": "121.46.230.232",
+      "server_port": 65443,
+      "method": "aes-256-cfb",
+      "password": "7eadc6dbe2ae"
+    },
+    {
+      "tag": "n_2450_2",
+      "type": "shadowsocks",
+      "server": "37.19.198.243",
+      "server_port": 443,
+      "method": "aes-128-gcm",
+      "password": "shadowsocks"
+    },
+    {
+      "tag": "n_2450_3",
+      "type": "shadowsocks",
+      "server": "218.237.185.230",
+      "server_port": 4652,
+      "method": "aes-256-cfb",
+      "password": "qwerREWQ@@"
+    },
+    {
+      "tag": "n_2450_4",
+      "type": "shadowsocks",
+      "server": "221.139.79.57",
+      "server_port": 13979,
+      "method": "aes-256-cfb",
+      "password": "qwerREWQ@@"
+    },
+    {
+      "tag": "n_2450_5",
+      "type": "shadowsocks",
+      "server": "35.183.121.177",
+      "server_port": 443,
+      "method": "aes-256-cfb",
+      "password": "amazonskr05"
+    },
+    {
+      "tag": "n_2450_6",
+      "type": "shadowsocks",
+      "server": "99.79.128.42",
+      "server_port": 443,
+      "method": "aes-256-cfb",
+      "password": "amazonskr05"
+    },
+    {
+      "tag": "n_2450_7",
+      "type": "shadowsocks",
+      "server": "137.184.93.209",
+      "server_port": 10365,
+      "method": "chacha20-ietf-poly1305",
+      "password": "9682edd6-89e6-4e6a-b31d-271089771d87"
+    },
+    {
+      "tag": "n_2450_8",
+      "type": "shadowsocks",
+      "server": "38.91.107.37",
+      "server_port": 5003,
+      "method": "aes-256-gcm",
+      "password": "g5MeD6Ft3CWlJId"
+    },
+    {
+      "tag": "n_2450_9",
+      "type": "shadowsocks",
+      "server": "38.75.136.34",
+      "server_port": 8090,
+      "method": "aes-256-gcm",
+      "password": "PCnnH6SQSnfoS27"
+    },
+    {
+      "tag": "n_2450_10",
+      "type": "shadowsocks",
+      "server": "38.75.136.34",
+      "server_port": 5500,
+      "method": "aes-256-gcm",
+      "password": "KixLvKzwjekG00rm"
+    },
+    {
+      "tag": "n_2450_11",
+      "type": "shadowsocks",
+      "server": "35.177.76.120",
+      "server_port": 443,
+      "method": "aes-256-cfb",
+      "password": "amazonskr05"
+    },
+    {
+      "tag": "n_2450_12",
+      "type": "shadowsocks",
+      "server": "35.178.212.194",
+      "server_port": 443,
+      "method": "aes-256-cfb",
+      "password": "amazonskr05"
+    },
+    {
+      "tag": "n_2450_13",
+      "type": "shadowsocks",
+      "server": "38.75.136.34",
+      "server_port": 5003,
+      "method": "aes-256-gcm",
+      "password": "g5MeD6Ft3CWlJId"
+    },
+    {
+      "tag": "n_2450_14",
+      "type": "shadowsocks",
+      "server": "38.68.135.18",
+      "server_port": 5500,
+      "method": "aes-256-gcm",
+      "password": "KixLvKzwjekG00rm"
+    },
+    {
+      "tag": "n_2450_15",
+      "type": "shadowsocks",
+      "server": "38.121.43.204",
+      "server_port": 8119,
+      "method": "aes-256-gcm",
+      "password": "cdBIDV42DCwnfIN"
+    },
+    {
+      "tag": "n_2450_16",
+      "type": "shadowsocks",
+      "server": "38.68.135.18",
+      "server_port": 8090,
+      "method": "aes-256-gcm",
+      "password": "PCnnH6SQSnfoS27"
+    },
+    {
+      "tag": "n_2450_17",
+      "type": "shadowsocks",
+      "server": "38.68.135.18",
+      "server_port": 6697,
+      "method": "aes-256-gcm",
+      "password": "TEzjfAYq2IjtuoS"
+    },
+    {
+      "tag": "n_2450_18",
+      "type": "shadowsocks",
+      "server": "38.75.136.34",
+      "server_port": 8091,
+      "method": "aes-256-gcm",
+      "password": "PCnnH6SQSnfoS27"
+    },
+    {
+      "tag": "n_2450_19",
+      "type": "shadowsocks",
+      "server": "38.68.135.18",
+      "server_port": 8009,
+      "method": "aes-256-gcm",
+      "password": "XKFKl2rULjIp74"
+    },
+    {
+      "tag": "n_2450_20",
+      "type": "shadowsocks",
+      "server": "38.68.135.18",
+      "server_port": 5003,
+      "method": "aes-256-gcm",
+      "password": "g5MeD6Ft3CWlJId"
+    },
+    {
+      "tag": "n_2450_21",
+      "type": "shadowsocks",
+      "server": "38.75.136.34",
+      "server_port": 9101,
+      "method": "aes-256-gcm",
+      "password": "e4FCWrgpkji3QY"
+    },
+    {
+      "tag": "n_2450_22",
+      "type": "shadowsocks",
+      "server": "38.75.136.34",
+      "server_port": 5600,
+      "method": "aes-256-gcm",
+      "password": "Y6R9pAtvxxzmGC"
+    },
+    {
+      "tag": "n_2450_23",
+      "type": "shadowsocks",
+      "server": "38.68.135.18",
+      "server_port": 5601,
+      "method": "aes-256-gcm",
+      "password": "Y6R9pAtvxxzmGC"
+    },
+    {
+      "tag": "n_2450_24",
+      "type": "shadowsocks",
+      "server": "38.75.136.34",
+      "server_port": 8118,
+      "method": "aes-256-gcm",
+      "password": "cdBIDV42DCwnfIN"
+    },
+    {
+      "tag": "n_2450_25",
+      "type": "shadowsocks",
+      "server": "38.121.43.204",
+      "server_port": 8009,
+      "method": "aes-256-gcm",
+      "password": "XKFKl2rULjIp74"
+    },
+    {
+      "tag": "n_2450_26",
+      "type": "shadowsocks",
+      "server": "103.149.182.79",
+      "server_port": 8388,
+      "method": "chacha20-ietf",
+      "password": "asd123456"
+    },
+    {
+      "tag": "n_2450_27",
+      "type": "shadowsocks",
+      "server": "183.232.158.66",
+      "server_port": 9203,
+      "method": "aes-256-gcm",
+      "password": "269f71b9-c45b-43f3-8c48-eb5f986aa707"
+    },
+    {
+      "tag": "n_2450_28",
+      "type": "shadowsocks",
+      "server": "183.232.158.67",
+      "server_port": 9205,
+      "method": "aes-256-gcm",
+      "password": "269f71b9-c45b-43f3-8c48-eb5f986aa707"
+    },
+    {
+      "tag": "n_2450_29",
+      "type": "shadowsocks",
+      "server": "183.232.158.66",
+      "server_port": 9205,
+      "method": "aes-256-gcm",
+      "password": "269f71b9-c45b-43f3-8c48-eb5f986aa707"
+    },
+    {
+      "tag": "n_2450_30",
+      "type": "shadowsocks",
+      "server": "193.108.118.30",
+      "server_port": 5500,
+      "method": "aes-256-gcm",
+      "password": "KixLvKzwjekG00rm"
+    },
+    {
+      "tag": "n_2450_31",
+      "type": "shadowsocks",
+      "server": "211.178.105.134",
+      "server_port": 6123,
+      "method": "aes-256-cfb",
+      "password": "qwerREWQ@@"
+    },
+    {
+      "tag": "n_2450_32",
+      "type": "shadowsocks",
+      "server": "p141.panda001.net",
+      "server_port": 4652,
+      "method": "aes-256-cfb",
+      "password": "qwerREWQ@@"
+    },
+    {
+      "tag": "n_2450_33",
+      "type": "trojan",
+      "server": "183.236.51.9",
+      "server_port": 10819,
+      "password": "7d223bae-e183-4bf6-89c3-e327b15df490",
+      "tls": {
+        "enabled": true,
+        "server_name": "183.236.51.9",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "tag": "n_2450_34",
+      "type": "shadowsocks",
+      "server": "216.105.168.18",
+      "server_port": 443,
+      "method": "chacha20-ietf-poly1305",
+      "password": "hCCWOcIsK5wrFz4OX70rWf"
+    },
+    {
+      "tag": "n_2450_35",
+      "type": "shadowsocks",
+      "server": "18.175.227.220",
+      "server_port": 443,
+      "method": "aes-256-cfb",
+      "password": "amazonskr05"
+    },
+    {
+      "tag": "n_2450_36",
+      "type": "trojan",
+      "server": "t1.gitvpn.eu.org",
+      "server_port": 443,
+      "password": "1a205ae2-be41-42b0-abdf-795a2ea3df4e",
+      "tls": {
+        "enabled": true,
+        "server_name": "t1.gitvpn.eu.org",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "tag": "n_2450_37",
+      "type": "trojan",
+      "server": "44.246.163.102",
+      "server_port": 443,
+      "password": "ND91608427",
+      "tls": {
+        "enabled": true,
+        "server_name": "fleet-bonefish.rooster465.autos",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "tag": "n_2450_38",
+      "type": "trojan",
+      "server": "144.24.72.126",
+      "server_port": 443,
+      "password": "7118b5f4-0ea4-4c11-be7f-11471cb91e4a",
+      "tls": {
+        "enabled": true,
+        "server_name": "144.24.72.126",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "tag": "n_2450_39",
+      "type": "shadowsocks",
+      "server": "16.52.44.93",
+      "server_port": 443,
+      "method": "aes-256-cfb",
+      "password": "amazonskr05"
+    },
+    {
+      "tag": "n_2450_40",
+      "type": "trojan",
+      "server": "103.173.255.234",
+      "server_port": 28443,
+      "password": "f033bd38-fe03-4705-883c-e45654eaa082",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.download.windowsupdate1.com",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "tag": "n_2450_41",
+      "type": "trojan",
+      "server": "103.173.255.228",
+      "server_port": 28443,
+      "password": "f033bd38-fe03-4705-883c-e45654eaa082",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.download.windowsupdate1.com",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "tag": "n_2450_42",
+      "type": "trojan",
+      "server": "103.173.255.127",
+      "server_port": 28443,
+      "password": "f033bd38-fe03-4705-883c-e45654eaa082",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.download.windowsupdate1.com",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "tag": "n_2450_43",
+      "type": "trojan",
+      "server": "103.173.255.21",
+      "server_port": 28443,
+      "password": "f033bd38-fe03-4705-883c-e45654eaa082",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.download.windowsupdate1.com",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "tag": "n_2450_44",
+      "type": "trojan",
+      "server": "103.195.236.24",
+      "server_port": 28443,
+      "password": "f033bd38-fe03-4705-883c-e45654eaa082",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.download.windowsupdate1.com",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "tag": "n_2450_45",
+      "type": "trojan",
+      "server": "20.24.44.110",
+      "server_port": 28443,
+      "password": "f033bd38-fe03-4705-883c-e45654eaa082",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.download.windowsupdate1.com",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "tag": "n_2450_46",
+      "type": "trojan",
+      "server": "91.243.81.42",
+      "server_port": 28443,
+      "password": "f033bd38-fe03-4705-883c-e45654eaa082",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.download.windowsupdate1.com",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "tag": "n_2450_47",
+      "type": "trojan",
+      "server": "18.162.207.193",
+      "server_port": 28443,
+      "password": "f033bd38-fe03-4705-883c-e45654eaa082",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.download.windowsupdate1.com",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "tag": "n_2450_48",
+      "type": "trojan",
+      "server": "18.162.56.130",
+      "server_port": 443,
+      "password": "f033bd38-fe03-4705-883c-e45654eaa082",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.download.windowsupdate1.com",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "tag": "n_2450_49",
+      "type": "trojan",
+      "server": "202.8.9.27",
+      "server_port": 28443,
+      "password": "f033bd38-fe03-4705-883c-e45654eaa082",
+      "tls": {
+        "enabled": true,
+        "server_name": "www.download.windowsupdate1.com",
+        "insecure": false,
+        "utls": {
+          "enabled": true,
+          "fingerprint": "chrome"
+        }
+      }
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    }
+  ]
+}

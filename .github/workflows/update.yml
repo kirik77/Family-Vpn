@@ -47,7 +47,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: ⚡ Collect, Test & Generate Subscriptions
+      - name: ⚡ Install Sing-box Engine for Real Speed Testing
+        run: |
+          curl -fsSL https://github.com/SagerNet/sing-box/releases/download/v1.10.7/sing-box-1.10.7-linux-amd64.tar.gz | tar -xz --strip-components=1
+          sudo mv sing-box /usr/local/bin/sing-box
+          sing-box version
+
+      - name: ⚡ Collect, Real-Test & Generate Subscriptions
         run: |
           python src/aggregator.py
 
