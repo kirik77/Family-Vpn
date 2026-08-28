@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Family VPN Subscription Pipeline
-Aggregator & Health-Tester for VLESS / Shadowsocks / Trojan / VMess
-Generates independent subscriptions:
- 1. 🚀 Fast / Home Internet (YouTube 4K, ChatGPT, Global)
- 2. ⚡ Emergency Whitelist (RU SNI bypass: VK, Yandex, Gosuslugi, Rutube)
- 3. 🛡️ Smart Combo (All in one with auto-switch)
+Family VPN Subscription Pipeline — High-Quality Edition
+High-Performance Aggregator, Quality-Scorer & Health-Tester
+Filters out slow/dead proxies and prioritizes high-speed VLESS-Reality & Trojan.
 """
 
 import os
@@ -41,7 +38,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("VPN-Aggregator")
 
-# --- Конфигурация источников ---
+# --- Высококачественные проверенные источники ---
 
 RU_WHITELIST_DOMAINS = [
     "vk.com",
@@ -70,26 +67,34 @@ RU_WHITELIST_DOMAINS = [
     "mos.ru"
 ]
 
-# Открытые проверенные репозитории и списки
+# Источники для обхода блокировок РФ и белых списков (Reality, VLESS с SNI)
 GROUP1_SOURCES = [
-    # Источники для обхода блокировок РФ и белых списков
-    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/vless.txt",
-    "https://raw.githubusercontent.com/yebekhe/TVC/main/subscriptions/xray/normal/vless",
-    "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/vless",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
+    "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/vless",
     "https://raw.githubusercontent.com/mftb0101/Free-Vless/main/sub.txt",
     "https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/reality.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/vless.txt",
+    "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/reality.txt",
+    "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/vless.txt",
+    "https://raw.githubusercontent.com/yebekhe/TVC/main/subscriptions/xray/normal/reality",
+    "https://raw.githubusercontent.com/yebekhe/TVC/main/subscriptions/xray/normal/vless",
+    "https://raw.githubusercontent.com/MrPooyaX/VmessProtocol/main/reality.txt",
+    "https://raw.githubusercontent.com/MrPooyaX/VmessProtocol/main/vless.txt",
 ]
 
+# Премиальные мировые источники скоростных VLESS-Reality, Trojan и Shadowsocks
 GROUP2_SOURCES = [
-    # Мировые открытые базы с быстрыми VLESS-Reality, Shadowsocks, Trojan
+    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/reality.txt",
+    "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/reality.txt",
     "https://raw.githubusercontent.com/yebekhe/TVC/main/subscriptions/xray/normal/reality",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub2.txt",
-    "https://raw.githubusercontent.com/mahdibland/ShadowsocksAggregator/master/sub/sub_merge.txt",
-    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY_RAW.txt",
-    "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
-    "https://raw.githubusercontent.com/ts-sf/fly/main/v2",
+    "https://raw.githubusercontent.com/snakem982/proxypool/main/source/reality.txt",
+    "https://raw.githubusercontent.com/MrPooyaX/VmessProtocol/main/reality.txt",
+    "https://raw.githubusercontent.com/LalatinaHub/Mineral/master/result/nodes",
+    "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/trojan.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/trojan.txt",
+    "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/ss.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/ss.txt",
 ]
 
 
@@ -102,10 +107,12 @@ class ProxyNode:
         self.name = name or f"{protocol.upper()}-{server}:{port}"
         self.raw_url = raw_url
         self.latency_ms: float = 9999.0
+        self.jitter_ms: float = 0.0
+        self.quality_score: float = 9999.0
         self.is_alive: bool = False
-        self.group: str = ""  # "whitelist" or "global"
+        self.group: str = ""
         
-        # Дополнительные атрибуты
+        # Параметры протокола
         self.uuid: str = ""
         self.password: str = ""
         self.method: str = ""
@@ -113,17 +120,39 @@ class ProxyNode:
         self.sni: str = ""
         self.host: str = ""
         self.path: str = ""
-        self.type: str = "tcp"  # transport type: tcp, ws, grpc, http
+        self.type: str = "tcp"
         self.flow: str = ""
         self.pbk: str = ""      # Reality Public Key
         self.sid: str = ""      # Reality Short ID
         self.fp: str = "chrome" # Fingerprint
-        self.spx: str = ""      # Reality SpiderX
+        self.spx: str = ""
         self.alpn: List[str] = []
         self.insecure: bool = False
 
+    def is_junk_node(self) -> bool:
+        """Отсеивает медленные/мусорные прокси (бесплатные worker-релеи, порт 80 без шифрования и т.д.)."""
+        # Отсеиваем медленные HTTP/WS релеи на незащищенных портах
+        if self.port in [80, 8080, 8880, 2052, 2082, 2086, 2095] and self.security not in ["tls", "reality"]:
+            return True
+
+        # Отсеиваем домены-релеи Cloudflare Workers с лимитами скорости 100 KB/s
+        target = f"{self.server or ''} {self.host or ''} {self.sni or ''}".lower()
+        slow_domains = ["trycloudflare.com", "workers.dev", "pages.dev", "hf.space", "onrender.com", "glitch.me"]
+        if any(sd in target for sd in slow_domains):
+            return True
+
+        # VLESS без UUID или Shadowsocks без пароля — мусор
+        if self.protocol == "vless" and (not self.uuid or len(self.uuid) < 16):
+            return True
+        if self.protocol == "shadowsocks" and not self.password:
+            return True
+        if self.protocol == "trojan" and not self.password:
+            return True
+
+        return False
+
     def is_ru_whitelist_compliant(self) -> bool:
-        """Проверка: порт 443/80/8443 и SNI/Host из белого списка РФ."""
+        """Проверка: порт 443/8443/80 и SNI/Host из белого списка РФ."""
         if self.port not in [443, 80, 8443, 2053, 2083, 2087, 2096]:
             return False
             
@@ -139,32 +168,36 @@ class ProxyNode:
     def clean_name(self, prefix: str, index: int) -> str:
         """Формирует красивое понятное имя ноды."""
         country_hint = "🌍"
-        if "RU" in self.name.upper() or self.is_ru_whitelist_compliant():
+        raw_upper = (self.name + " " + self.server).upper()
+        if "RU" in raw_upper or self.is_ru_whitelist_compliant():
             country_hint = "🇷🇺 RU"
-        elif "DE" in self.name.upper() or "GERMANY" in self.name.upper():
+        elif "DE" in raw_upper or "GERMANY" in raw_upper or "FRA" in raw_upper:
             country_hint = "🇩🇪 DE"
-        elif "NL" in self.name.upper() or "NETHERLANDS" in self.name.upper():
+        elif "NL" in raw_upper or "NETHERLANDS" in raw_upper or "AMS" in raw_upper:
             country_hint = "🇳🇱 NL"
-        elif "FI" in self.name.upper() or "FINLAND" in self.name.upper():
+        elif "FI" in raw_upper or "FINLAND" in raw_upper or "HEL" in raw_upper:
             country_hint = "🇫🇮 FI"
-        elif "SE" in self.name.upper() or "SWEDEN" in self.name.upper():
+        elif "SE" in raw_upper or "SWEDEN" in raw_upper or "STO" in raw_upper:
             country_hint = "🇸🇪 SE"
-        elif "US" in self.name.upper() or "UNITED STATES" in self.name.upper():
+        elif "US" in raw_upper or "UNITED STATES" in raw_upper:
             country_hint = "🇺🇸 US"
-        elif "GB" in self.name.upper() or "UK" in self.name.upper():
+        elif "GB" in raw_upper or "UK" in raw_upper or "LON" in raw_upper:
             country_hint = "🇬🇧 UK"
-        elif "TR" in self.name.upper() or "TURKEY" in self.name.upper():
+        elif "TR" in raw_upper or "TURKEY" in raw_upper:
             country_hint = "🇹🇷 TR"
             
         proto_tag = self.protocol.upper()
         if self.security == "reality":
-            proto_tag = "Reality"
+            proto_tag = "Reality-4K"
+        elif self.protocol == "trojan":
+            proto_tag = "Trojan-TLS"
+        elif self.protocol == "shadowsocks":
+            proto_tag = "SS-Fast"
 
         ping_str = f"{int(self.latency_ms)}ms" if self.latency_ms < 9000 else "OK"
         return f"{prefix} {country_hint} {proto_tag} #{index:02d} ({ping_str})"
 
     def to_raw_url_with_name(self, new_name: str) -> str:
-        """Возвращает raw ссылку с обновленным хэш-тегом."""
         if "#" in self.raw_url:
             base = self.raw_url.split("#")[0]
         else:
@@ -172,7 +205,6 @@ class ProxyNode:
         return f"{base}#{urllib.parse.quote(new_name)}"
 
     def to_singbox_outbound(self, tag: str) -> Optional[Dict[str, Any]]:
-        """Преобразует ноду в outbound объект для Sing-box 1.8+."""
         outbound: Dict[str, Any] = {
             "tag": tag,
             "type": self.protocol,
@@ -185,7 +217,6 @@ class ProxyNode:
             if self.flow:
                 outbound["flow"] = self.flow
             
-            # Transport
             if self.type == "ws":
                 outbound["transport"] = {
                     "type": "ws",
@@ -204,7 +235,6 @@ class ProxyNode:
                     "host": [self.host or self.sni or self.server]
                 }
                 
-            # TLS / Reality
             if self.security in ["tls", "reality"]:
                 tls_conf: Dict[str, Any] = {
                     "enabled": True,
@@ -272,7 +302,6 @@ class ProxyNode:
         return outbound
 
     def to_clash_proxy(self, name: str) -> Optional[Dict[str, Any]]:
-        """Преобразует ноду в proxy объект для Clash Meta / Mihomo."""
         proxy: Dict[str, Any] = {
             "name": name,
             "type": self.protocol,
@@ -511,18 +540,17 @@ class ProtocolParser:
         return None
 
 
-# --- Асинхронный сборщик и Health-Tester ---
+# --- Улучшенный Health & Jitter Speed Engine ---
 
 class Aggregator:
     def __init__(self, dist_dir: str):
         self.dist_dir = dist_dir
-        self.session_timeout = 7
+        self.session_timeout = 8
 
     async def fetch_source(self, url: str) -> List[str]:
-        """Скачивает и декодирует подписку/список ссылок."""
         import aiohttp
         headers = {
-            "User-Agent": "v2rayNG/1.8.12 Hiddify/2.0.5 SingBox/1.9.0"
+            "User-Agent": "v2rayNG/1.8.12 Hiddify/2.0.5 SingBox/1.9.0 Mozilla/5.0"
         }
         lines: List[str] = []
         try:
@@ -551,7 +579,6 @@ class Aggregator:
         return lines
 
     async def collect_nodes_from_sources(self, sources: List[str]) -> List[ProxyNode]:
-        """Параллельно собирает ноды из списка URL источников."""
         tasks = [self.fetch_source(url) for url in sources]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
@@ -564,21 +591,17 @@ class Aggregator:
         nodes: List[ProxyNode] = []
         for line in all_raw_lines:
             node = ProtocolParser.parse_line(line)
-            if node:
+            if node and not node.is_junk_node():
                 key = f"{node.protocol}://{node.server}:{node.port}@{node.uuid or node.password}"
                 if key not in seen_keys:
                     seen_keys.add(key)
                     nodes.append(node)
         return nodes
 
-    async def check_tcp_tls_health(self, node: ProxyNode, timeout: float = 2.0) -> Tuple[bool, float]:
-        """
-        Проверяет доступность узла через TCP connect + TLS probe
-        и измеряет RTT в миллисекундах.
-        """
+    async def single_probe(self, node: ProxyNode, timeout: float = 1.8) -> Tuple[bool, float]:
+        """Одиночный замер задержки TCP Connect + TLS Handshake."""
         start_time = time.perf_counter()
         loop = asyncio.get_running_loop()
-        
         try:
             reader, writer = await asyncio.wait_for(
                 asyncio.open_connection(node.server, node.port),
@@ -597,7 +620,7 @@ class Aggregator:
                             ssl_ctx,
                             server_hostname=server_name
                         ),
-                        timeout=min(1.0, timeout)
+                        timeout=min(0.9, timeout)
                     )
                 except Exception:
                     pass
@@ -608,30 +631,64 @@ class Aggregator:
             except Exception:
                 pass
             
-            total_rtt = (time.perf_counter() - start_time) * 1000.0
-            return True, round(total_rtt, 1)
+            rtt = (time.perf_counter() - start_time) * 1000.0
+            return True, rtt
         except Exception:
             return False, 9999.0
 
-    async def test_pool(self, nodes: List[ProxyNode], max_timeout: float, sample_size: int = 350, concurrency: int = 60) -> List[ProxyNode]:
-        """Тестирует выборку узлов с высоким параллелизмом для быстрого завершения."""
-        if len(nodes) > sample_size:
-            reality_nodes = [n for n in nodes if n.security == "reality"]
-            other_nodes = [n for n in nodes if n.security != "reality"]
-            random.shuffle(other_nodes)
-            test_subset = reality_nodes[:sample_size // 2] + other_nodes[:sample_size - len(reality_nodes[:sample_size // 2])]
-        else:
-            test_subset = nodes
+    async def check_node_quality(self, node: ProxyNode, max_timeout: float = 2.0) -> bool:
+        """
+        Двойной замер задержки (Double-Probe) для проверки стабильности и джиттера.
+        Исключает нестабильные и зависающие узлы.
+        """
+        # Замер 1
+        ok1, rtt1 = await self.single_probe(node, timeout=max_timeout)
+        if not ok1 or rtt1 > (max_timeout * 1000.0):
+            return False
+            
+        # Короткая пауза 100мс между замерами
+        await asyncio.sleep(0.1)
+        
+        # Замер 2
+        ok2, rtt2 = await self.single_probe(node, timeout=max_timeout)
+        if not ok2 or rtt2 > (max_timeout * 1000.0):
+            return False
+
+        avg_latency = (rtt1 + rtt2) / 2.0
+        jitter = abs(rtt1 - rtt2)
+        
+        # Бонус за Reality (самый стабильный протокол с защитой от DPI)
+        reality_bonus = -15.0 if node.security == "reality" else 0.0
+        
+        node.is_alive = True
+        node.latency_ms = round(avg_latency, 1)
+        node.jitter_ms = round(jitter, 1)
+        # Оценка качества: средний пинг + штраф за джиттер + бонус за Reality
+        node.quality_score = round(avg_latency + (jitter * 1.5) + reality_bonus, 1)
+        return True
+
+    async def test_pool(self, nodes: List[ProxyNode], max_timeout: float = 2.0, sample_size: int = 400, concurrency: int = 60) -> List[ProxyNode]:
+        """Тестирует отобранный пул серверов на двойной пинг и стабильность."""
+        # Приоритет Reality и VLESS узлам
+        reality_nodes = [n for n in nodes if n.security == "reality"]
+        trojan_nodes = [n for n in nodes if n.protocol == "trojan"]
+        ss_nodes = [n for n in nodes if n.protocol == "shadowsocks"]
+        other_nodes = [n for n in nodes if n.security != "reality" and n.protocol not in ["trojan", "shadowsocks"]]
+        
+        # Формируем лучший пул для теста
+        test_subset = reality_nodes[:200] + trojan_nodes[:100] + ss_nodes[:50] + other_nodes[:50]
+        if len(test_subset) < sample_size and len(nodes) > len(test_subset):
+            extra = [n for n in nodes if n not in test_subset]
+            random.shuffle(extra)
+            test_subset.extend(extra[:sample_size - len(test_subset)])
 
         sem = asyncio.Semaphore(concurrency)
         tested_nodes: List[ProxyNode] = []
 
         async def worker(node: ProxyNode):
             async with sem:
-                alive, rtt = await self.check_tcp_tls_health(node, timeout=max_timeout)
-                if alive and rtt <= (max_timeout * 1000.0):
-                    node.is_alive = True
-                    node.latency_ms = rtt
+                passed = await self.check_node_quality(node, max_timeout=max_timeout)
+                if passed:
                     tested_nodes.append(node)
 
         tasks = [worker(n) for n in test_subset]
@@ -639,7 +696,6 @@ class Aggregator:
         return tested_nodes
 
     def create_fallback_nodes_if_needed(self, pool_name: str, current_count: int, target_count: int) -> List[ProxyNode]:
-        """Генерирует надежные эталонные VLESS-Reality конфигурации, если в открытых источниках мало нод."""
         fallbacks = []
         if current_count >= target_count:
             return fallbacks
@@ -667,48 +723,49 @@ class Aggregator:
             if node:
                 node.is_alive = True
                 node.latency_ms = 25.0 + (i * 4.5)
+                node.quality_score = node.latency_ms
                 fallbacks.append(node)
 
         return fallbacks
 
     async def run(self):
-        """Главный цикл агрегации, тестирования и генерации файлов."""
         os.makedirs(self.dist_dir, exist_ok=True)
         start_overall = time.time()
-        logger.info("=== Запуск пайплайна агрегации VPN подписок ===")
+        logger.info("=== Запуск High-Quality пайплайна агрегации VPN ===")
 
-        # 1. Сбор пула 1: «⚡ Обход Белых Списков»
-        logger.info("--- Сбор Группы 1: Обход Белых Списков (Whitelist) ---")
+        # 1. Сбор пула 1: «⚡ Авто: Белые Списки РФ»
+        logger.info("--- Сбор и тестирование Группы 1: Белые Списки РФ ---")
         g1_raw_nodes = await self.collect_nodes_from_sources(GROUP1_SOURCES)
-        
         g1_filtered = [n for n in g1_raw_nodes if n.is_ru_whitelist_compliant()]
-        logger.info(f"Найдено {len(g1_filtered)} нод, соответствующих белому списку РФ.")
+        logger.info(f"Найдено {len(g1_filtered)} качественных нод с SNI из белого списка РФ.")
 
-        g1_tested = await self.test_pool(g1_filtered, max_timeout=2.5, sample_size=200, concurrency=50)
-        logger.info(f"Успешно проверено {len(g1_tested)} живых нод Whitelist.")
+        g1_tested = await self.test_pool(g1_filtered, max_timeout=2.2, sample_size=200, concurrency=50)
+        logger.info(f"Прошли двойной тест стабильности {len(g1_tested)} нод Whitelist.")
         
         if len(g1_tested) < 10:
             fallbacks = self.create_fallback_nodes_if_needed("whitelist", len(g1_tested), 10)
             g1_tested.extend(fallbacks)
             
-        g1_tested.sort(key=lambda x: x.latency_ms)
+        g1_tested.sort(key=lambda x: x.quality_score)
         top_g1 = g1_tested[:10]
         for idx, node in enumerate(top_g1, 1):
             node.group = "whitelist"
             node.name = node.clean_name("[⚡ Белые Списки]", idx)
 
-        # 2. Сбор пула 2: «🚀 Быстрый / Домашний интернет / YouTube»
-        logger.info("--- Сбор Группы 2: Быстрый Global / Домашний (YouTube / Google) ---")
+        # 2. Сбор пула 2: «🚀 Авто: Домашний интернет / Быстрый»
+        logger.info("--- Сбор и тестирование Группы 2: Быстрый Global / Reality ---")
         g2_raw_nodes = await self.collect_nodes_from_sources(GROUP2_SOURCES)
+        logger.info(f"Собрано {len(g2_raw_nodes)} скоростных кандидатов без мусора.")
         
-        g2_tested = await self.test_pool(g2_raw_nodes, max_timeout=2.5, sample_size=350, concurrency=60)
-        logger.info(f"Успешно проверено {len(g2_tested)} живых глобальных нод.")
+        g2_tested = await self.test_pool(g2_raw_nodes, max_timeout=2.0, sample_size=400, concurrency=60)
+        logger.info(f"Прошли двойной тест стабильности {len(g2_tested)} скоростных нод.")
         
         if len(g2_tested) < 15:
             fallbacks = self.create_fallback_nodes_if_needed("global", len(g2_tested), 15)
             g2_tested.extend(fallbacks)
 
-        g2_tested.sort(key=lambda x: x.latency_ms)
+        # Сортируем по показателю качества (пинг + джиттер + стабильность)
+        g2_tested.sort(key=lambda x: x.quality_score)
         top_g2 = g2_tested[:15]
         for idx, node in enumerate(top_g2, 1):
             node.group = "global"
@@ -716,30 +773,25 @@ class Aggregator:
 
         logger.info(f"Отобрано: {len(top_g1)} узлов Whitelist и {len(top_g2)} узлов Global.")
 
-        # 3. Генерация независимых форматов подписок
-        # 3.1. Быстрый / Домашний интернет
+        # 3. Генерация файлов подписок
         self.generate_raw_sub_file(top_g2, "sub_fast.txt", "sub_fast_plain.txt")
-        self.generate_singbox_profile(top_g2, [], "singbox_fast.json", "🚀 Быстрый (Домашний)")
-        self.generate_clash_profile(top_g2, [], "clash_fast.yaml", "🚀 Быстрый (Домашний)")
+        self.generate_singbox_profile(top_g2, [], "singbox_fast.json", "🚀 Авто: Домашний интернет")
+        self.generate_clash_profile(top_g2, [], "clash_fast.yaml", "🚀 Авто: Домашний интернет")
 
-        # 3.2. Аварийный / Белые списки РФ
         self.generate_raw_sub_file(top_g1, "sub_whitelist.txt", "sub_whitelist_plain.txt")
-        self.generate_singbox_profile([], top_g1, "singbox_whitelist.json", "⚡ Обход Белых Списков")
-        self.generate_clash_profile([], top_g1, "clash_whitelist.yaml", "⚡ Обход Белых Списков")
+        self.generate_singbox_profile([], top_g1, "singbox_whitelist.json", "⚡ Авто: Белые Списки РФ")
+        self.generate_clash_profile([], top_g1, "clash_whitelist.yaml", "⚡ Авто: Белые Списки РФ")
 
-        # 3.3. Единая подписка (Smart Combo)
         self.generate_raw_sub_file(top_g2 + top_g1, "sub.txt", "sub_plain.txt")
-        self.generate_singbox_profile(top_g2, top_g1, "singbox.json", "🎯 Выбор режима")
-        self.generate_clash_profile(top_g2, top_g1, "clash.yaml", "🎯 Выбор режима")
+        self.generate_singbox_profile(top_g2, top_g1, "singbox.json", "🎯 Умный выбор")
+        self.generate_clash_profile(top_g2, top_g1, "clash.yaml", "🎯 Умный выбор")
 
-        # Метаданные и веб-страница
         self.generate_stats(len(g1_raw_nodes) + len(g2_raw_nodes), top_g1, top_g2, time.time() - start_overall)
         self.prepare_web_assets()
 
-        logger.info(f"=== Пайплайн завершен за {time.time() - start_overall:.2f} сек. Файлы сохранены в {self.dist_dir} ===")
+        logger.info(f"=== Пайплайн завершен за {time.time() - start_overall:.2f} сек. ===")
 
     def generate_raw_sub_file(self, nodes: List[ProxyNode], b64_filename: str, plain_filename: str):
-        """Сохраняет список raw нод в Base64 и Plain text."""
         raw_lines = [n.to_raw_url_with_name(n.name) for n in nodes]
         combined_text = "\n".join(raw_lines)
         
@@ -754,7 +806,6 @@ class Aggregator:
         logger.info(f"Сгенерирован {b64_path} ({len(raw_lines)} нод)")
 
     def generate_singbox_profile(self, g_fast: List[ProxyNode], g_white: List[ProxyNode], filename: str, profile_name: str):
-        """Генерирует Sing-box конфигурацию под конкретный пул серверов."""
         template_path = os.path.join(os.path.dirname(__file__), "template_singbox.json")
         try:
             with open(template_path, "r", encoding="utf-8") as f:
@@ -789,10 +840,14 @@ class Aggregator:
             elif tag == "🚀 Быстрый (Авто)":
                 if fast_tags:
                     item["outbounds"] = fast_tags
+                    item["interval"] = "2m"
+                    item["tolerance"] = 40
                     new_outbounds.append(item)
             elif tag == "⚡ Обход Белых Списков (Авто)":
                 if white_tags:
                     item["outbounds"] = white_tags
+                    item["interval"] = "2m"
+                    item["tolerance"] = 40
                     new_outbounds.append(item)
             else:
                 new_outbounds.append(item)
@@ -806,7 +861,6 @@ class Aggregator:
         logger.info(f"Сгенерирован {output_path}")
 
     def generate_clash_profile(self, g_fast: List[ProxyNode], g_white: List[ProxyNode], filename: str, profile_name: str):
-        """Генерирует Clash Meta / Mihomo профиль."""
         proxies = []
         fast_names = []
         white_names = []
@@ -829,14 +883,13 @@ class Aggregator:
             {
                 "name": profile_name,
                 "type": "select",
-                "proxies": ([
+                "proxies": [
                     "🚀 Быстрый (Авто)" if fast_names else None,
                     "⚡ Обход Белых Списков (Авто)" if white_names else None,
                     "DIRECT"
-                ])
+                ]
             }
         ]
-        # Clean None values
         proxy_groups[0]["proxies"] = [p for p in proxy_groups[0]["proxies"] if p] + all_names
 
         if fast_names:
@@ -844,8 +897,8 @@ class Aggregator:
                 "name": "🚀 Быстрый (Авто)",
                 "type": "url-test",
                 "url": "https://cp.cloudflare.com/generate_204",
-                "interval": 180,
-                "tolerance": 50,
+                "interval": 120,
+                "tolerance": 40,
                 "proxies": fast_names
             })
 
@@ -854,8 +907,8 @@ class Aggregator:
                 "name": "⚡ Обход Белых Списков (Авто)",
                 "type": "url-test",
                 "url": "https://yandex.ru/generate_204",
-                "interval": 180,
-                "tolerance": 50,
+                "interval": 120,
+                "tolerance": 40,
                 "proxies": white_names
             })
 
@@ -897,7 +950,6 @@ class Aggregator:
         logger.info(f"Сгенерирован {output_path}")
 
     def generate_stats(self, total_scraped: int, g1: List[ProxyNode], g2: List[ProxyNode], duration: float):
-        """Сохраняет dist/stats.json для отображения на веб-странице."""
         now_utc = datetime.now(timezone.utc)
         now_msk = now_utc + timedelta(hours=3)
         
@@ -919,7 +971,6 @@ class Aggregator:
         logger.info(f"Сгенерирован {output_path}")
 
     def prepare_web_assets(self):
-        """Копирует web/index.html в dist/index.html с подстановкой метаданных."""
         web_src = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web", "index.html")
         web_dest = os.path.join(self.dist_dir, "index.html")
         
