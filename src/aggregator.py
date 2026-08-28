@@ -160,12 +160,12 @@ class ProxyNode:
         if any(server_ip.startswith(p) for p in cf_prefixes):
             return True
 
-        # 4. Отсеиваем азиатские подсети (Япония/Сингапур/Индия) с высоким пингом для РФ (>300 мс)
-        asia_prefixes = [
-            "13.231.", "52.193.", "52.194.", "52.195.", "52.196.", "54.238.", "54.250.",
-            "43.207.", "35.79.", "18.179.", "57.180.", "13.112.", "13.114.", "13.193.", "13.230.", "13.235."
+        # 4. Отсеиваем азиатские и заблокированные AWS/JP/SG подсети
+        blocked_prefixes = [
+            "13.", "18.", "3.", "35.", "43.", "47.", "52.", "54.", "57.", "103.", "121.", "122.", "140.", "163.", "192.", "194.9."
         ]
-        if any(server_ip.startswith(p) for p in asia_prefixes):
+        is_wl = any(k in f"{self.name} {self.server}".lower() for k in ["mangshe", "cidr", "white"])
+        if not is_wl and any(server_ip.startswith(p) for p in blocked_prefixes):
             return True
 
         target = f"{self.server or ''} {self.host or ''} {self.sni or ''}".lower()
