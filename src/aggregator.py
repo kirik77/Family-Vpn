@@ -133,19 +133,48 @@ class ProxyNode:
         self.insecure: bool = False
 
     def is_junk_node(self) -> bool:
-        """Отсеивает медленные/мусорные прокси (бесплатные worker-релеи, незашифрованные порты 80 и т.д.)."""
+        """Отсеивает медленные/мусорные прокси (CDN релеи, WebSocket обманки с ложным пингом, порт 80)."""
+        # 1. Отсеиваем WebSocket (ws) и HTTP transport — главная причина низкой пропускной способности
+        if self.type in ["ws", "http"]:
+            return True
+
+        # 2. Отсеиваем незащищенные порты
         if self.port in [80, 8080, 8880, 2052, 2082, 2086, 2095] and self.security not in ["tls", "reality"]:
             return True
 
+        # 3. Отсеиваем Cloudflare/Fastly Anycast IP пулы (дают ложный пинг 30мс на SYN пакете, но скорость 50 КБ/с)
+        server_ip = self.server.strip()
+        cf_prefixes = [
+            "104.16.", "104.17.", "104.18.", "104.19.", "104.20.", "104.21.", "104.22.", "104.23.", "104.24.",
+            "104.25.", "104.26.", "104.27.", "104.28.", "104.29.", "104.30.", "104.31.",
+            "172.64.", "172.65.", "172.66.", "172.67.", "172.68.", "172.69.", "172.70.", "172.71.",
+            "162.158.", "162.159.", "173.245.", "198.41.", "199.232."
+        ]
+        if any(server_ip.startswith(p) for p in cf_prefixes):
+            return True
+
+        # 4. Отсеиваем мусорные бесплатные домены и медленные релеи
         target = f"{self.server or ''} {self.host or ''} {self.sni or ''}".lower()
-        slow_domains = ["trycloudflare.com", "workers.dev", "pages.dev", "hf.space", "onrender.com", "glitch.me"]
+        slow_domains = [
+            "trycloudflare.com", "workers.dev", "pages.dev", "hf.space", "onrender.com",
+            "glitch.me", "fastly.net", "berzulo.ir", "freelanceriran98.ir", ".ir"
+        ]
         if any(sd in target for sd in slow_domains):
             return True
 
-        if self.protocol == "vless" and (not self.uuid or len(self.uuid) < 16):
+        # 5. Проверка обязательных полей
+        if self.protocol == "vless":
+            if not self.uuid or len(self.uuid) < 16:
+                return True
+            # Для VLESS требуем Reality или прямой TLS
+            if self.security not in ["reality", "tls"]:
+                return True
+        elif self.protocol == "vmess":
+            # VMess в большинстве случаев медленный CDN мусор — отсекаем
             return True
-        if self.protocol in ["shadowsocks", "trojan", "hysteria2"] and not self.password:
-            return True
+        elif self.protocol in ["shadowsocks", "trojan", "hysteria2"]:
+            if not self.password:
+                return True
 
         return False
 
