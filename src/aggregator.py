@@ -171,8 +171,18 @@ class ProxyNode:
                 return True
             if self.security not in ["reality", "tls"] and not any(server_ip.endswith(d) for d in [".ru", ".now", ".host"]):
                 return True
-            if self.security == "reality" and not self.pbk:
-                return True
+            if self.security == "reality":
+                if not self.pbk or len(self.pbk) not in [43, 44]:
+                    return True
+                try:
+                    padded = self.pbk + "=" * (-len(self.pbk) % 4)
+                    raw = base64.urlsafe_b64decode(padded.encode())
+                    if len(raw) != 32:
+                        return True
+                except Exception:
+                    return True
+                if self.sid and not re.match(r"^[0-9a-fA-F]{1,16}$", self.sid):
+                    return True
         elif self.protocol == "hysteria2":
             if not self.password:
                 return True
@@ -230,13 +240,9 @@ class ProxyNode:
         elif self.protocol == "trojan":
             proto_tag = "Trojan-TLS"
 
-        # Реальный клиентский TCP пинг для европейских и российских серверов (25-135мс)
-        if self.latency_ms > 0:
-            if self.latency_ms > 150:
-                client_ping = max(28, min(135, int(self.latency_ms * 0.22)))
-            else:
-                client_ping = max(25, int(self.latency_ms))
-            ping_str = f"{client_ping}ms"
+        # Реальный клиентский TCP пинг для европейских и российских серверов
+        if self.latency_ms > 0 and self.latency_ms < 9999:
+            ping_str = f"{int(self.latency_ms)}ms"
         else:
             ping_str = "45ms"
 
@@ -533,7 +539,7 @@ class SingboxSpeedEngine:
             s.bind(("127.0.0.1", 0))
             return s.getsockname()[1]
 
-    async def test_nodes_real_e2e(self, nodes: List[ProxyNode], test_url: str = "http://connectivitycheck.gstatic.com/generate_204", batch_size: int = 40) -> List[ProxyNode]:
+    async def test_nodes_real_e2e(self, nodes: List[ProxyNode], test_url: str = "http://connectivitycheck.gstatic.com/generate_204", batch_size: int = 250) -> List[ProxyNode]:
         """Запускает Sing-box и проводит настоящее сквозное HTTP-тестирование трафика."""
         import aiohttp
 
@@ -584,7 +590,7 @@ class SingboxSpeedEngine:
                 json.dump(cfg, f, indent=2)
 
             proc = subprocess.Popen([binary, "run", "-c", cfg_file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            await asyncio.sleep(1.2)
+            await asyncio.sleep(1.5)
 
             if proc.poll() is not None:
                 if os.path.exists(cfg_file):
@@ -592,20 +598,20 @@ class SingboxSpeedEngine:
                 continue
 
             try:
-                sem = asyncio.Semaphore(35)
+                sem = asyncio.Semaphore(50)
                 async with aiohttp.ClientSession() as session:
                     async def probe_node(tag_name: str, pnode: ProxyNode):
                         async with sem:
-                            query_url = f"http://127.0.0.1:{ctrl_port}/proxies/{urllib.parse.quote(tag_name)}/delay?timeout=3000&url={urllib.parse.quote(test_url)}"
+                            query_url = f"http://127.0.0.1:{ctrl_port}/proxies/{urllib.parse.quote(tag_name)}/delay?timeout=2500&url={urllib.parse.quote(test_url)}"
                             try:
-                                async with session.get(query_url, timeout=aiohttp.ClientTimeout(total=3.5)) as resp:
+                                async with session.get(query_url, timeout=aiohttp.ClientTimeout(total=3.2)) as resp:
                                     if resp.status == 200:
                                         data = await resp.json(content_type=None)
                                         delay = data.get("delay", 9999)
-                                        if delay and delay < 2500:
+                                        if delay and delay > 0 and delay < 2200:
                                             pnode.is_alive = True
-                                            pnode.latency_ms = delay
-                                            pnode.quality_score = delay
+                                            pnode.latency_ms = float(delay)
+                                            pnode.quality_score = float(delay)
                                             working_nodes.append(pnode)
                             except Exception:
                                 pass
@@ -624,12 +630,12 @@ class SingboxSpeedEngine:
 class Aggregator:
     def __init__(self, dist_dir: str):
         self.dist_dir = dist_dir
-        self.session_timeout = 7
+        self.session_timeout = 15
         self.speed_engine = SingboxSpeedEngine()
 
     def fetch_source_sync(self, url: str) -> List[str]:
         headers = {
-            "User-Agent": "v2rayNG/1.8.12 Hiddify/2.0.5 SingBox/1.9.0 Mozilla/5.0"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 v2rayNG/1.8.12 Hiddify/2.0.5"
         }
         lines: List[str] = []
         try:
@@ -685,12 +691,18 @@ class Aggregator:
         wl_raw_candidates = []
         fast_raw_candidates = []
 
-        wl_keywords = ["max.ru", "fastaichat", "persik", "aeza", "beget", "ads.x5.ru", "5post", "eda.x5.ru", "api-maps.yandex.ru", "storage.yandex.net", "360.yandex.ru", "yandex.ru", "ya.ru", "vk.com", "gosuslugi", "selectel", "31.177.", "82.202.", "89.248.", "rjsxrd", "nodes.ac"]
+        wl_keywords = [
+            "max.ru", "fastaichat", "persik", "aeza", "beget", "ads.x5.ru", "5post", "eda.x5.ru",
+            "api-maps.yandex.ru", "storage.yandex.net", "360.yandex.ru", "yandex.ru", "ya.ru",
+            "vk.com", "gosuslugi", "selectel", "31.177.", "82.202.", "89.248.", "rjsxrd", "nodes.ac",
+            "cendora.ru", "plus-abc.ru", "jarvestip.ru", "jarvesitw.ru", "mangshe.xyz", "aeternavpn.space",
+            "tgflow.me", "tildacdn", "tilda", "yandexcloud", "sber", "tbank", "ozon", "wildberries", "apple.com"
+        ]
 
         for node in all_raw_nodes:
             raw_s = f"{node.name} {node.server} {node.sni} {node.host}".lower()
             if any(k in raw_s for k in wl_keywords):
-                if node.port in [443, 8443, 5269, 52006, 49005, 9001, 26424] and node not in wl_raw_candidates:
+                if node.port in [443, 8443, 2053, 2056, 5000, 5001, 5269, 52006, 49005, 9001, 26424] and node not in wl_raw_candidates:
                     wl_raw_candidates.append(node)
             else:
                 if node.security in ["reality", "tls"] and node not in fast_raw_candidates:
@@ -698,34 +710,35 @@ class Aggregator:
 
         # 3. Проводим сквозное тестирование через ядро Sing-box
         test_url = "http://connectivitycheck.gstatic.com/generate_204"
-        logger.info(f"Тестирование {len(wl_raw_candidates[:250])} Whitelist кандидатов...")
-        tested_wl = await self.speed_engine.test_nodes_real_e2e(wl_raw_candidates[:250], test_url=test_url, batch_size=40)
+        logger.info(f"Тестирование {len(wl_raw_candidates)} Whitelist кандидатов...")
+        tested_wl = await self.speed_engine.test_nodes_real_e2e(wl_raw_candidates, test_url=test_url, batch_size=250)
         tested_wl.sort(key=lambda x: x.latency_ms)
 
-        logger.info(f"Тестирование {len(fast_raw_candidates[:700])} Fast кандидатов...")
-        tested_fast = await self.speed_engine.test_nodes_real_e2e(fast_raw_candidates[:700], test_url=test_url, batch_size=40)
+        logger.info(f"Тестирование {len(fast_raw_candidates[:800])} Fast кандидатов...")
+        tested_fast = await self.speed_engine.test_nodes_real_e2e(fast_raw_candidates[:800], test_url=test_url, batch_size=250)
         tested_fast.sort(key=lambda x: x.latency_ms)
 
-        import copy
-        # Берем ТОЛЬКО РЕАЛЬНО ЖИВЫЕ ноды (никаких фейковых заглушек)
-        wl_pool = list(tested_wl)
-        for n in tested_fast:
-            if len(wl_pool) >= 15:
-                break
-            if n not in wl_pool:
-                wl_pool.append(n)
+        # 4. Двойная контрольная верификация отобранных лучших узлов
+        candidates_to_confirm = tested_wl + tested_fast
+        logger.info(f"Финальная двойная проверка {len(candidates_to_confirm)} живых кандидатов...")
+        double_verified = await self.speed_engine.test_nodes_real_e2e(candidates_to_confirm, test_url=test_url, batch_size=250)
+        double_verified.sort(key=lambda x: x.latency_ms)
 
-        top_g1 = [copy.deepcopy(n) for n in wl_pool[:15]]
+        import copy
+        # Whitelist
+        wl_confirmed = [n for n in double_verified if any(k in f"{n.name} {n.server} {n.sni} {n.host}".lower() for k in wl_keywords)]
+        top_g1 = [copy.deepcopy(n) for n in wl_confirmed[:15]]
         for idx, node in enumerate(top_g1, 1):
             node.group = "whitelist"
             node.name = node.clean_name("[⚡ Белые Списки]", idx)
 
-        # Группа Быстрый / Домашний интернет
-        fast_pool = list(tested_fast)
-        for n in tested_wl:
-            if len(fast_pool) >= 15:
-                break
-            if n not in fast_pool:
+        # Global: лучшие проверенные ноды по реальной скорости
+        seen_hosts = set()
+        fast_pool = []
+        for n in double_verified:
+            k = f"{n.server}:{n.port}"
+            if k not in seen_hosts:
+                seen_hosts.add(k)
                 fast_pool.append(n)
 
         top_g2 = [copy.deepcopy(n) for n in fast_pool[:15]]
