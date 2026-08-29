@@ -75,6 +75,9 @@ RU_WHITELIST_DOMAINS = [
 # Источники для обхода блокировок РФ и белых списков
 GROUP1_SOURCES = [
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
+    "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt",
+    "https://gitverse.ru/api/repos/zieng2/wl/raw/branch/master/list_universal.txt",
+    "https://codeberg.org/zieng2/wl/raw/branch/main/vless_universal.txt",
     "https://cyb-portal.com/CP-006",
     "https://cyb-portal.com/CP-001",
     "https://cyb-portal.com/CP-002",
@@ -94,6 +97,8 @@ GROUP1_SOURCES = [
 # Премиальные мировые источники скоростных VLESS-Reality, Hysteria2, Trojan и Shadowsocks
 GROUP2_SOURCES = [
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
+    "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt",
+    "https://codeberg.org/zieng2/wl/raw/branch/main/vless_universal.txt",
     "https://cyb-portal.com/CP-006",
     "https://cyb-portal.com/CP-001",
     "https://cyb-portal.com/CP-002",
@@ -144,7 +149,7 @@ class ProxyNode:
     def is_junk_node(self) -> bool:
         """Отсеивает медленные/мусорные прокси."""
         raw_info = f"{self.name} {self.server} {self.sni} {self.host}".lower()
-        if any(k in raw_info for k in ["persik", "aeza", "beget", "cloudpath", "devtestadmin", "51.250.", "x5.ru", "белые списки", "госуслуги", "mangshe", "cidr", "white"]):
+        if any(k in raw_info for k in ["zieng", "fastaichat", "max.ru", "tilda", "wba-pn", "persik", "aeza", "beget", "cloudpath", "devtestadmin", "51.250.", "x5.ru", "белые списки", "госуслуги", "mangshe", "cidr", "white"]):
             return False
 
         if self.type in ["ws", "http"] and not any(k in raw_info for k in [".ru", "devtestadmin", "mirra"]):
@@ -822,10 +827,12 @@ class Aggregator:
         wl_candidates = []
         fast_candidates = []
 
-        # 1. Приоритет проверенным эталонным узлам белых списков (Spain 2, Italy 2, devtestadmin, 51.250, x5.ru, russia)
+        # 1. Приоритет проверенным эталонным узлам белых списков
         priority_keywords = [
-            "spain 2", "51.250.69.41", "italy 2", "51.250.3.73", "devtestadmin", "russiayt", "russia.cloudpath", "31.177.111.144",
-            "ads.x5.ru", "5post-gate.x5.ru", "eda.x5.ru", "51.250.", "api-maps.yandex.ru", "storage.yandex.net", "360.yandex.ru"
+            "sliver-huesos", "fastaichat.ru", "89.248.193.85", "max.ru", "82.202.179.92", "tildacdn", "46.243.233.98",
+            "persik.host", "193.168.46.180", "ya.ru", "45.12.75.242",
+            "31.177.111.144", "ads.x5.ru", "5post-gate.x5.ru", "eda.x5.ru",
+            "api-maps.yandex.ru", "storage.yandex.net", "360.yandex.ru", "yandex.ru", "vk.com"
         ]
         for kw in priority_keywords:
             for node in all_raw_nodes:
