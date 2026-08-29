@@ -189,14 +189,17 @@ class ProxyNode:
         if any(sd in target for sd in slow_domains):
             return True
 
-        if self.protocol == "vless":
-            if not self.uuid or len(self.uuid) < 16:
-                return True
-            if self.security not in ["reality", "tls"] and not self.server.endswith(".ru"):
-                return True
+        if self.protocol == "shadowsocks":
+            # Plain shadowsocks without TLS is 100% blocked/throttled by Russian TSPU DPI
+            return True
         elif self.protocol == "vmess":
             return True
-        elif self.protocol in ["shadowsocks", "trojan", "hysteria2"]:
+        elif self.protocol == "vless":
+            if not self.uuid or len(self.uuid) < 16:
+                return True
+            if self.security not in ["reality", "tls"] and not any(self.server.endswith(d) for d in [".ru", ".now", ".host"]):
+                return True
+        elif self.protocol in ["trojan", "hysteria2"]:
             if not self.password:
                 return True
 
@@ -691,13 +694,13 @@ class SingboxSpeedEngine:
                 async with aiohttp.ClientSession() as session:
                     async def probe_node(tag_name: str, pnode: ProxyNode):
                         async with sem:
-                            query_url = f"http://127.0.0.1:{ctrl_port}/proxies/{urllib.parse.quote(tag_name)}/delay?timeout=2500&url={urllib.parse.quote(test_url)}"
+                            query_url = f"http://127.0.0.1:{ctrl_port}/proxies/{urllib.parse.quote(tag_name)}/delay?timeout=3000&url={urllib.parse.quote(test_url)}"
                             try:
-                                async with session.get(query_url, timeout=aiohttp.ClientTimeout(total=3.0)) as resp:
+                                async with session.get(query_url, timeout=aiohttp.ClientTimeout(total=3.5)) as resp:
                                     if resp.status == 200:
                                         data = await resp.json()
                                         delay = data.get("delay", 9999)
-                                        if delay and delay < 2000:
+                                        if delay and delay < 2500:
                                             pnode.is_alive = True
                                             pnode.latency_ms = delay
                                             pnode.quality_score = delay
@@ -733,24 +736,16 @@ class Aggregator:
                 async with session.get(url, timeout=aiohttp.ClientTimeout(total=self.session_timeout)) as resp:
                     if resp.status == 200:
                         text = await resp.text(errors="ignore")
-                        stripped = text.strip()
-                        if not stripped.startswith(("vless://", "trojan://", "ss://", "vmess://", "hysteria2://", "hy2://")):
+                        if not text.startswith(("vless://", "vmess://", "hysteria2://", "ss://", "trojan://", "tuic://", "hy2://")):
                             try:
-                                padding = 4 - len(stripped) % 4
-                                if padding != 4:
-                                    stripped += "=" * padding
-                                decoded = base64.b64decode(stripped).decode("utf-8", errors="ignore")
-                                if any(proto in decoded for proto in ["vless://", "ss://", "trojan://", "hysteria2://"]):
-                                    text = decoded
+                                import base64
+                                decoded = base64.b64decode(text.strip()).decode("utf-8", errors="ignore")
+                                text = decoded
                             except Exception:
                                 pass
-                        
-                        for line in text.splitlines():
-                            line = line.strip()
-                            if line.startswith(("vless://", "trojan://", "ss://", "hysteria2://", "hy2://")):
-                                lines.append(line)
+                        lines = [line.strip() for line in text.splitlines() if line.strip()]
         except Exception as e:
-            logger.warning(f"Ошибка загрузки источника: {e}")
+            logger.warning(f"Ошибка загрузки источника {url}: {e}")
         return lines
 
     async def collect_nodes_from_sources(self, sources: List[str]) -> List[ProxyNode]:
@@ -821,57 +816,48 @@ class Aggregator:
         all_raw_nodes = await self.collect_nodes_from_sources(GROUP1_SOURCES + GROUP2_SOURCES)
         logger.info(f"Собрано {len(all_raw_nodes)} уникальных кандидатов.")
 
-        # Приоритет европейским и российским Reality/Hy2/Trojan/VLESS узлам
-        tested_pool = await self.speed_engine.test_nodes_real_e2e(all_raw_nodes[:350], test_url="https://cp.cloudflare.com/generate_204", batch_size=50)
-        logger.info(f"Прошли сквозной Sing-box тест {len(tested_pool)} реальных нод.")
+        # 2. Разделяем кандидатов на группу Белые списки и группу Global
+        wl_raw_candidates = []
+        fast_raw_candidates = []
 
-        # Сортируем строго по задержке
-        tested_pool.sort(key=lambda x: x.latency_ms)
+        wl_keywords = ["max.ru", "fastaichat.ru", "persik", "aeza", "beget", "ads.x5.ru", "5post", "eda.x5.ru", "api-maps.yandex.ru", "storage.yandex.net", "360.yandex.ru", "yandex.ru", "ya.ru", "vk.com", "gosuslugi", "selectel", "31.177.", "82.202.", "89.248."]
 
-        # Выделяем группу Белые Списки РФ (строго российские SNI и российские IP на порту 443/8443)
-        wl_candidates = []
-        fast_candidates = []
-
-        # 1. Приоритет проверенным эталонным узлам белых списков
-        priority_keywords = [
-            "sliver-huesos", "fastaichat.ru", "89.248.193.85", "max.ru", "82.202.179.92", "tildacdn", "46.243.233.98",
-            "persik.host", "193.168.46.180", "ya.ru", "45.12.75.242",
-            "31.177.111.144", "ads.x5.ru", "5post-gate.x5.ru", "eda.x5.ru",
-            "api-maps.yandex.ru", "storage.yandex.net", "360.yandex.ru", "yandex.ru", "vk.com", "rjsxrd"
-        ]
-        for kw in priority_keywords:
-            for node in all_raw_nodes:
-                raw_s = f"{node.name} {node.server} {node.sni} {node.host}".lower()
-                if kw in raw_s and node not in wl_candidates:
-                    wl_candidates.append(node)
-
-        # 2. Затем остальные ноды с RU SNI / доменами
         for node in all_raw_nodes:
             raw_s = f"{node.name} {node.server} {node.sni} {node.host}".lower()
-            if any(k in raw_s for k in ["yandex.ru", "ya.ru", "vk.com", "m.vk.com", "gosuslugi", "persik.host", "31.177.", "89.223.", "176.109.", "31.129."]):
-                if node not in wl_candidates:
-                    wl_candidates.append(node)
+            if any(k in raw_s for k in wl_keywords):
+                if node.port in [443, 8443, 5269, 52006, 49005, 9001, 26424] and node not in wl_raw_candidates:
+                    wl_raw_candidates.append(node)
+            else:
+                if node.security in ["reality", "tls"] and node not in fast_raw_candidates:
+                    fast_raw_candidates.append(node)
 
-        # 3. Затем протестированные ноды из tested_pool
-        for node in tested_pool:
-            if node not in wl_candidates:
-                wl_candidates.append(node)
+        # 3. Проводим сквозное тестирование через ядро Sing-box
+        logger.info(f"Тестирование {len(wl_raw_candidates[:150])} Whitelist кандидатов...")
+        tested_wl = await self.speed_engine.test_nodes_real_e2e(wl_raw_candidates[:150], test_url="https://cp.cloudflare.com/generate_204", batch_size=35)
+        tested_wl.sort(key=lambda x: x.latency_ms)
+
+        logger.info(f"Тестирование {len(fast_raw_candidates[:450])} Fast кандидатов...")
+        tested_fast = await self.speed_engine.test_nodes_real_e2e(fast_raw_candidates[:450], test_url="https://cp.cloudflare.com/generate_204", batch_size=50)
+        tested_fast.sort(key=lambda x: x.latency_ms)
 
         import copy
-        top_g1 = [copy.deepcopy(n) for n in wl_candidates[:15]]
+        # Если в tested_wl меньше 15 нод, дополняем проверенными быстрыми нодами
+        wl_pool = list(tested_wl)
+        for n in tested_fast:
+            if len(wl_pool) >= 15:
+                break
+            if n not in wl_pool:
+                wl_pool.append(n)
+
+        top_g1 = [copy.deepcopy(n) for n in wl_pool[:15]]
         for idx, node in enumerate(top_g1, 1):
             node.group = "whitelist"
             node.name = node.clean_name("[⚡ Белые Списки]", idx)
 
-        # Группа Быстрый / Домашний интернет - отбор строго с пингом до 100 мс
-        fast_pool = []
-        for n in tested_pool:
-            c_ping = max(25, int(n.latency_ms * 0.22)) if n.latency_ms > 150 else max(25, int(n.latency_ms))
-            if c_ping <= 100:
-                fast_pool.append(n)
-
+        # Группа Быстрый / Домашний интернет
+        fast_pool = list(tested_fast)
         if len(fast_pool) < 15:
-            for n in tested_pool:
+            for n in tested_wl:
                 if n not in fast_pool:
                     fast_pool.append(n)
 
