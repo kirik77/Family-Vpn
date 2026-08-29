@@ -156,7 +156,7 @@ class ProxyNode:
     def is_junk_node(self) -> bool:
         """Отсеивает медленные/мусорные прокси."""
         raw_info = f"{self.name} {self.server} {self.sni} {self.host}".lower()
-        if any(k in raw_info for k in ["zieng", "fastaichat", "max.ru", "tilda", "wba-pn", "persik", "aeza", "beget", "cloudpath", "devtestadmin", "51.250.", "x5.ru", "белые списки", "госуслуги", "mangshe", "cidr", "white"]):
+        if any(k in raw_info for k in ["zieng", "fastaichat", "max.ru", "tilda", "wba-pn", "persik", "aeza", "beget", "cloudpath", "devtestadmin", "51.250.", "x5.ru", "белые списки", "госуслуги", "mangshe", "rjsxrd"]):
             return False
 
         if self.type in ["ws", "http"] and not any(k in raw_info for k in [".ru", "devtestadmin", "mirra"]):
@@ -313,7 +313,9 @@ class ProxyNode:
                     "server_name": self.sni or self.server,
                     "insecure": self.insecure
                 }
-                tls_conf["utls"] = {"enabled": True, "fingerprint": self.fp or "chrome"}
+                valid_fps = {"chrome", "firefox", "safari", "ios", "android", "edge"}
+                chosen_fp = self.fp.lower() if self.fp and self.fp.lower() in valid_fps else "chrome"
+                tls_conf["utls"] = {"enabled": True, "fingerprint": chosen_fp}
                 if self.alpn:
                     tls_conf["alpn"] = self.alpn
                     
@@ -699,7 +701,7 @@ class SingboxSpeedEngine:
                             try:
                                 async with session.get(query_url, timeout=aiohttp.ClientTimeout(total=3.5)) as resp:
                                     if resp.status == 200:
-                                        data = await resp.json()
+                                        data = await resp.json(content_type=None)
                                         delay = data.get("delay", 9999)
                                         if delay and delay < 2500:
                                             pnode.is_alive = True
@@ -835,25 +837,23 @@ class Aggregator:
                     fast_raw_candidates.append(node)
 
         # 3. Проводим сквозное тестирование через ядро Sing-box
-        logger.info(f"Тестирование {len(wl_raw_candidates[:150])} Whitelist кандидатов...")
-        tested_wl = await self.speed_engine.test_nodes_real_e2e(wl_raw_candidates[:150], test_url="https://cp.cloudflare.com/generate_204", batch_size=35)
+        test_url = "http://connectivitycheck.gstatic.com/generate_204"
+        logger.info(f"Тестирование {len(wl_raw_candidates[:250])} Whitelist кандидатов...")
+        tested_wl = await self.speed_engine.test_nodes_real_e2e(wl_raw_candidates[:250], test_url=test_url, batch_size=40)
         tested_wl.sort(key=lambda x: x.latency_ms)
 
-        logger.info(f"Тестирование {len(fast_raw_candidates[:450])} Fast кандидатов...")
-        tested_fast = await self.speed_engine.test_nodes_real_e2e(fast_raw_candidates[:450], test_url="https://cp.cloudflare.com/generate_204", batch_size=50)
+        logger.info(f"Тестирование {len(fast_raw_candidates[:700])} Fast кандидатов...")
+        tested_fast = await self.speed_engine.test_nodes_real_e2e(fast_raw_candidates[:700], test_url=test_url, batch_size=40)
         tested_fast.sort(key=lambda x: x.latency_ms)
 
         import copy
+        # Берем ТОЛЬКО РЕАЛЬНО ЖИВЫЕ ноды
         wl_pool = list(tested_wl)
         for n in tested_fast:
             if len(wl_pool) >= 15:
                 break
             if n not in wl_pool:
                 wl_pool.append(n)
-
-        if len(wl_pool) < 15:
-            fallbacks_wl = self.create_fallback_nodes_if_needed("whitelist", len(wl_pool), 15)
-            wl_pool.extend(fallbacks_wl)
 
         top_g1 = [copy.deepcopy(n) for n in wl_pool[:15]]
         for idx, node in enumerate(top_g1, 1):
@@ -862,14 +862,11 @@ class Aggregator:
 
         # Группа Быстрый / Домашний интернет
         fast_pool = list(tested_fast)
-        if len(fast_pool) < 15:
-            for n in tested_wl:
-                if n not in fast_pool:
-                    fast_pool.append(n)
-
-        if len(fast_pool) < 15:
-            fallbacks_fast = self.create_fallback_nodes_if_needed("global", len(fast_pool), 15)
-            fast_pool.extend(fallbacks_fast)
+        for n in tested_wl:
+            if len(fast_pool) >= 15:
+                break
+            if n not in fast_pool:
+                fast_pool.append(n)
 
         top_g2 = [copy.deepcopy(n) for n in fast_pool[:15]]
         for idx, node in enumerate(top_g2, 1):
