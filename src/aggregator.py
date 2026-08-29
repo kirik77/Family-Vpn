@@ -157,10 +157,11 @@ class ProxyNode:
         if any(server_ip.startswith(p) for p in cf_prefixes):
             return True
 
-        # 3. Запрет бесплатных нерабочих воркеров
+        # 3. Запрет бесплатных нерабочих воркеров и фейковых/медовых нод (400 байт/с)
         slow_domains = [
             "trycloudflare.com", "workers.dev", "pages.dev", "hf.space", "onrender.com",
-            "glitch.me", "fastly.net", "berzulo.ir", "freelanceriran98.ir", ".ir"
+            "glitch.me", "fastly.net", "berzulo.ir", "freelanceriran98.ir", ".ir",
+            "jarvestip", "jarvesitw", "xiaoliyu", "whitecreeper"
         ]
         if any(sd in raw_info for sd in slow_domains):
             return True
@@ -207,27 +208,29 @@ class ProxyNode:
         raw_upper = (self.name + " " + self.server + " " + (self.sni or "")).upper()
         if any(k in raw_upper for k in ["ИТАЛИЯ", "ITALY", "IT", "172.232.", "172.238."]):
             country_hint = "🇮🇹 IT"
-        elif any(k in raw_upper for k in ["НИДЕРЛАНДЫ", "NETHERLAND", "NL", "37.49."]):
+        elif any(k in raw_upper for k in ["НИДЕРЛАНДЫ", "NETHERLAND", "NL", "37.49.", "94.103.", "PLUS-ABC"]):
             country_hint = "🇳🇱 NL"
-        elif any(k in raw_upper for k in ["БРИТАНИЯ", "UK", "GB", "95.154.", "78.129.", "46.250."]):
+        elif any(k in raw_upper for k in ["БРИТАНИЯ", "UK", "GB", "95.154.", "78.129.", "46.250.", "2.24.", "186.190."]):
             country_hint = "🇬🇧 GB"
         elif any(k in raw_upper for k in ["ШВЕЦИЯ", "SWEDEN", "SE", "SWE.FRKN", "89.248."]):
             country_hint = "🇸🇪 SE"
-        elif any(k in raw_upper for k in ["РУМЫНИЯ", "ROMANIA", "RO", "185.156."]):
+        elif any(k in raw_upper for k in ["РУМЫНИЯ", "ROMANIA", "RO", "185.156.", "82.117."]):
             country_hint = "🇷🇴 RO"
-        elif any(k in raw_upper for k in ["ИСПАНИЯ", "SPAIN", "ES", "185.254.", "34.81."]):
+        elif any(k in raw_upper for k in ["ИСПАНИЯ", "SPAIN", "ES", "185.254.", "34.81.", "80.240."]):
             country_hint = "🇪🇸 ES"
-        elif any(k in raw_upper for k in ["ГЕРМАНИЯ", "GERMANY", "DE", "FRA", "212.233.", "46.243."]):
+        elif any(k in raw_upper for k in ["ГЕРМАНИЯ", "GERMANY", "DE", "FRA", "212.233.", "46.243.", "45.95.", "SUPERBUBA"]):
             country_hint = "🇩🇪 DE"
         elif any(k in raw_upper for k in ["ФИНЛЯНДИЯ", "FINLAND", "FI", "31.77."]):
             country_hint = "🇫🇮 FI"
-        elif any(k in raw_upper for k in ["ЛИТВА", "LITHUANIA", "LT", "62.152.", "37.143."]):
-            country_hint = "🇱🇹 LT"
-        elif any(k in raw_upper for k in ["ПОЛЬША", "POLAND", "PL", "194.61."]):
+        elif any(k in raw_upper for k in ["ПОЛЬША", "POLAND", "PL", "194.61.", "217.217."]):
             country_hint = "🇵🇱 PL"
-        elif any(k in raw_upper for k in ["ФРАНЦИЯ", "FRANCE", "FR"]):
+        elif any(k in raw_upper for k in ["ФРАНЦИЯ", "FRANCE", "FR", "31.77.182."]):
             country_hint = "🇫🇷 FR"
-        elif any(k in raw_upper for k in ["SELECTEL", "BEGET", "AEZA", "PERSIK", "РОССИЯ", "RUSSIA", "RU", "51.250.", "82.202."]):
+        elif any(k in raw_upper for k in ["ЯПОНИЯ", "JAPAN", "JP", "3.114.", "52.195.", "188.253."]):
+            country_hint = "🇯🇵 JP"
+        elif any(k in raw_upper for k in ["СИНГАПУР", "SINGAPORE", "SG", "139.59.", "52.220."]):
+            country_hint = "🇸🇬 SG"
+        elif any(k in raw_upper for k in ["РОССИЯ", "RUSSIA", "RU", "51.250.", "82.202.", "5.34.", "195.123.", "CENDORA"]):
             country_hint = "🇷🇺 RU"
         elif any(k in raw_upper for k in ["США", "USA", "US"]):
             country_hint = "🇺🇸 US"
@@ -639,8 +642,11 @@ class Aggregator:
         }
         lines: List[str] = []
         try:
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=self.session_timeout) as resp:
+            with urllib.request.urlopen(req, timeout=self.session_timeout, context=ctx) as resp:
                 text = resp.read().decode("utf-8", errors="ignore")
                 if not text.startswith(("vless://", "vmess://", "hysteria2://", "ss://", "trojan://", "tuic://", "hy2://")):
                     try:
@@ -695,8 +701,8 @@ class Aggregator:
             "max.ru", "fastaichat", "persik", "aeza", "beget", "ads.x5.ru", "5post", "eda.x5.ru",
             "api-maps.yandex.ru", "storage.yandex.net", "360.yandex.ru", "yandex.ru", "ya.ru",
             "vk.com", "gosuslugi", "selectel", "31.177.", "82.202.", "89.248.", "rjsxrd", "nodes.ac",
-            "cendora.ru", "plus-abc.ru", "jarvestip.ru", "jarvesitw.ru", "mangshe.xyz", "aeternavpn.space",
-            "tgflow.me", "tildacdn", "tilda", "yandexcloud", "sber", "tbank", "ozon", "wildberries", "apple.com"
+            "cendora.ru", "plus-abc.ru", "mangshe.xyz", "aeternavpn.space",
+            "tgflow.me", "superbuba.top", "tildacdn", "tilda", "yandexcloud", "sber", "tbank", "ozon", "wildberries", "apple.com", "cdnjs.cloudflare.com"
         ]
 
         for node in all_raw_nodes:
@@ -714,8 +720,8 @@ class Aggregator:
         tested_wl = await self.speed_engine.test_nodes_real_e2e(wl_raw_candidates, test_url=test_url, batch_size=250)
         tested_wl.sort(key=lambda x: x.latency_ms)
 
-        logger.info(f"Тестирование {len(fast_raw_candidates[:800])} Fast кандидатов...")
-        tested_fast = await self.speed_engine.test_nodes_real_e2e(fast_raw_candidates[:800], test_url=test_url, batch_size=250)
+        logger.info(f"Тестирование {len(fast_raw_candidates[:4000])} Fast кандидатов...")
+        tested_fast = await self.speed_engine.test_nodes_real_e2e(fast_raw_candidates[:4000], test_url=test_url, batch_size=250)
         tested_fast.sort(key=lambda x: x.latency_ms)
 
         # 4. Двойная контрольная верификация отобранных лучших узлов
