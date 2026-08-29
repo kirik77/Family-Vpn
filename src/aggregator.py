@@ -74,6 +74,9 @@ RU_WHITELIST_DOMAINS = [
 
 # Источники для обхода блокировок РФ и белых списков
 GROUP1_SOURCES = [
+    "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-all.txt",
+    "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-1.txt",
+    "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-2.txt",
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
     "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt",
     "https://gitverse.ru/api/repos/zieng2/wl/raw/branch/master/list_universal.txt",
@@ -96,6 +99,8 @@ GROUP1_SOURCES = [
 
 # Премиальные мировые источники скоростных VLESS-Reality, Hysteria2, Trojan и Shadowsocks
 GROUP2_SOURCES = [
+    "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-all.txt",
+    "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-1.txt",
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
     "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt",
     "https://codeberg.org/zieng2/wl/raw/branch/main/vless_universal.txt",
@@ -817,7 +822,7 @@ class Aggregator:
         logger.info(f"Собрано {len(all_raw_nodes)} уникальных кандидатов.")
 
         # Приоритет европейским и российским Reality/Hy2/Trojan/VLESS узлам
-        tested_pool = await self.speed_engine.test_nodes_real_e2e(all_raw_nodes[:200], test_url="https://cp.cloudflare.com/generate_204", batch_size=50)
+        tested_pool = await self.speed_engine.test_nodes_real_e2e(all_raw_nodes[:350], test_url="https://cp.cloudflare.com/generate_204", batch_size=50)
         logger.info(f"Прошли сквозной Sing-box тест {len(tested_pool)} реальных нод.")
 
         # Сортируем строго по задержке
@@ -832,7 +837,7 @@ class Aggregator:
             "sliver-huesos", "fastaichat.ru", "89.248.193.85", "max.ru", "82.202.179.92", "tildacdn", "46.243.233.98",
             "persik.host", "193.168.46.180", "ya.ru", "45.12.75.242",
             "31.177.111.144", "ads.x5.ru", "5post-gate.x5.ru", "eda.x5.ru",
-            "api-maps.yandex.ru", "storage.yandex.net", "360.yandex.ru", "yandex.ru", "vk.com"
+            "api-maps.yandex.ru", "storage.yandex.net", "360.yandex.ru", "yandex.ru", "vk.com", "rjsxrd"
         ]
         for kw in priority_keywords:
             for node in all_raw_nodes:
