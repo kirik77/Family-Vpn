@@ -8,12 +8,14 @@
       {
         "tag": "remote-dns",
         "address": "https://1.1.1.1/dns-query",
+        "address_resolver": "local-dns",
         "detour": "🎯 Умный Авто-выбор",
         "strategy": "prefer_ipv4"
       },
       {
         "tag": "remote-dns-fallback",
-        "address": "https://dns.google/dns-query",
+        "address": "https://8.8.8.8/dns-query",
+        "address_resolver": "local-dns",
         "detour": "🎯 Умный Авто-выбор",
         "strategy": "prefer_ipv4"
       },
@@ -56,7 +58,9 @@
       "type": "tun",
       "tag": "tun-in",
       "interface_name": "tun0",
-      "inet4_address": "172.19.0.1/30",
+      "address": [
+        "172.19.0.1/30"
+      ],
       "auto_route": true,
       "strict_route": true,
       "stack": "mixed",
