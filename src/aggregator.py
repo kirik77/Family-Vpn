@@ -99,6 +99,8 @@ GROUP1_SOURCES = [
 
 # Премиальные мировые источники скоростных VLESS-Reality, Hysteria2, Trojan и Shadowsocks
 GROUP2_SOURCES = [
+    "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/mixed",
+    "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt",
     "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-all.txt",
     "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-1.txt",
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
@@ -290,8 +292,8 @@ class ProxyNode:
         
         if self.protocol == "vless":
             outbound["uuid"] = self.uuid
-            if self.flow:
-                outbound["flow"] = self.flow
+            if self.flow and "xtls-rprx-vision" in self.flow:
+                outbound["flow"] = "xtls-rprx-vision"
             
             if self.type == "grpc":
                 outbound["transport"] = {
@@ -311,8 +313,7 @@ class ProxyNode:
                     "server_name": self.sni or self.server,
                     "insecure": self.insecure
                 }
-                if self.fp:
-                    tls_conf["utls"] = {"enabled": True, "fingerprint": self.fp}
+                tls_conf["utls"] = {"enabled": True, "fingerprint": self.fp or "chrome"}
                 if self.alpn:
                     tls_conf["alpn"] = self.alpn
                     
@@ -725,28 +726,30 @@ class Aggregator:
         self.session_timeout = 8
         self.speed_engine = SingboxSpeedEngine()
 
-    async def fetch_source(self, url: str) -> List[str]:
-        import aiohttp
+    def fetch_source_sync(self, url: str) -> List[str]:
+        import urllib.request, base64
         headers = {
             "User-Agent": "v2rayNG/1.8.12 Hiddify/2.0.5 SingBox/1.9.0 Mozilla/5.0"
         }
         lines: List[str] = []
         try:
-            async with aiohttp.ClientSession(headers=headers) as session:
-                async with session.get(url, timeout=aiohttp.ClientTimeout(total=self.session_timeout)) as resp:
-                    if resp.status == 200:
-                        text = await resp.text(errors="ignore")
-                        if not text.startswith(("vless://", "vmess://", "hysteria2://", "ss://", "trojan://", "tuic://", "hy2://")):
-                            try:
-                                import base64
-                                decoded = base64.b64decode(text.strip()).decode("utf-8", errors="ignore")
-                                text = decoded
-                            except Exception:
-                                pass
-                        lines = [line.strip() for line in text.splitlines() if line.strip()]
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=self.session_timeout) as resp:
+                text = resp.read().decode("utf-8", errors="ignore")
+                if not text.startswith(("vless://", "vmess://", "hysteria2://", "ss://", "trojan://", "tuic://", "hy2://")):
+                    try:
+                        decoded = base64.b64decode(text.strip()).decode("utf-8", errors="ignore")
+                        text = decoded
+                    except Exception:
+                        pass
+                lines = [line.strip() for line in text.splitlines() if line.strip()]
         except Exception as e:
             logger.warning(f"Ошибка загрузки источника {url}: {e}")
         return lines
+
+    async def fetch_source(self, url: str) -> List[str]:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self.fetch_source_sync, url)
 
     async def collect_nodes_from_sources(self, sources: List[str]) -> List[ProxyNode]:
         tasks = [self.fetch_source(url) for url in sources]
@@ -841,13 +844,16 @@ class Aggregator:
         tested_fast.sort(key=lambda x: x.latency_ms)
 
         import copy
-        # Если в tested_wl меньше 15 нод, дополняем проверенными быстрыми нодами
         wl_pool = list(tested_wl)
         for n in tested_fast:
             if len(wl_pool) >= 15:
                 break
             if n not in wl_pool:
                 wl_pool.append(n)
+
+        if len(wl_pool) < 15:
+            fallbacks_wl = self.create_fallback_nodes_if_needed("whitelist", len(wl_pool), 15)
+            wl_pool.extend(fallbacks_wl)
 
         top_g1 = [copy.deepcopy(n) for n in wl_pool[:15]]
         for idx, node in enumerate(top_g1, 1):
@@ -860,6 +866,10 @@ class Aggregator:
             for n in tested_wl:
                 if n not in fast_pool:
                     fast_pool.append(n)
+
+        if len(fast_pool) < 15:
+            fallbacks_fast = self.create_fallback_nodes_if_needed("global", len(fast_pool), 15)
+            fast_pool.extend(fallbacks_fast)
 
         top_g2 = [copy.deepcopy(n) for n in fast_pool[:15]]
         for idx, node in enumerate(top_g2, 1):
