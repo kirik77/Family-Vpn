@@ -373,9 +373,16 @@
 
     function copyFormatUrl(fmt) {
       const base = getBaseUrl();
-      const url = fmt === 'singbox' ? `${base}singbox.json` : `${base}clash.yaml`;
+      let file = '';
+      if (fmt === 'singbox') {
+        file = currentMode === 'whitelist' ? 'singbox_whitelist.json' : (currentMode === 'fast' ? 'singbox_fast.json' : 'singbox.json');
+      } else {
+        file = currentMode === 'whitelist' ? 'clash_whitelist.yaml' : (currentMode === 'fast' ? 'clash_fast.yaml' : 'clash.yaml');
+      }
+      const url = `${base}${file}`;
+      const modeTitle = currentMode === 'whitelist' ? 'Белые Списки' : (currentMode === 'fast' ? 'Быстрый' : 'Всё в одном');
       navigator.clipboard.writeText(url).then(() => {
-        showToast(`Ссылка на ${fmt === 'singbox' ? 'Sing-box' : 'Clash'} скопирована!`);
+        showToast(`Ссылка на ${fmt === 'singbox' ? 'Sing-box' : 'Clash'} (${modeTitle}) скопирована!`);
       });
     }
 

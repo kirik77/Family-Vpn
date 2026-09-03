@@ -43,56 +43,47 @@ logger = logging.getLogger("VPN-Aggregator")
 
 # Домены белого списка РФ для обхода глушения ТСПУ
 RU_WHITELIST_DOMAINS = [
-    "vk.com", "vk.ru", "vk-portal.net", "userapi.com",
-    "yandex.ru", "yandex.net", "yastatic.net", "ya.ru",
-    "mail.ru", "gosuslugi.ru", "max.ru", "fastaichat.ru",
-    "yandexcloud.net", "s3.yandexcloud.net", "storage.yandexcloud.net",
+    "vk.com", "vk.ru", "vk-portal.net", "userapi.com", "api.vk.com", "eh.vk.com",
+    "yandex.ru", "yandex.net", "yastatic.net", "ya.ru", "api-maps.yandex.ru",
+    "yandexcloud.net", "s3.yandexcloud.net", "storage.yandexcloud.net", "360.yandex.ru",
+    "mail.ru", "cloud.mail.ru", "bk.ru", "inbox.ru",
+    "gosuslugi.ru", "esia.gosuslugi.ru",
+    "max.ru", "fastaichat.ru",
     "dzen.ru", "rutube.ru", "tinkoff.ru", "tbank.ru",
-    "sberbank.ru", "sber.ru", "ozon.ru", "wildberries.ru",
-    "avito.ru", "mos.ru", "tildacdn.pub", "tilda.ws",
-    "ads.x5.ru", "5post-gate.x5.ru", "eda.x5.ru", "5post.ru",
-    "nodes.ac", "apple.com"
+    "sberbank.ru", "sber.ru", "vtb.ru", "alfabank.ru", "gazprombank.ru",
+    "ozon.ru", "wildberries.ru", "avito.ru", "mos.ru", "spb.ru",
+    "tildacdn.pub", "tilda.ws", "tilda.cc",
+    "ads.x5.ru", "5post-gate.x5.ru", "eda.x5.ru", "5post.ru", "x5.ru", "5ka.ru", "sfera.x5.ru",
+    "megafon.ru", "mts.ru", "beeline.ru", "tele2.ru", "t2.ru", "yota.ru", "rostelecom.ru",
+    "nodes.ac", "cachefleet.com", "mycdn.me", "ngenix.net", "fasssst.ru",
+    "apple.com", "itunes.apple.com", "icloud.com"
 ]
 
 # Источники для обхода блокировок РФ и белых списков
 GROUP1_SOURCES = [
+    "https://raw.githubusercontent.com/ByeWhiteLists/ByeWhiteLists2/refs/heads/main/ByeWhiteLists2.txt",
+    "https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_all.txt",
+    "https://raw.githubusercontent.com/slxkware/Vless-list/main/White%20Vless.txt",
     "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-all.txt",
     "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-1.txt",
     "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-2.txt",
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
     "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt",
-    "https://gitverse.ru/api/repos/zieng2/wl/raw/branch/master/list_universal.txt",
-    "https://codeberg.org/zieng2/wl/raw/branch/main/vless_universal.txt",
-    "https://cyb-portal.com/CP-006",
-    "https://cyb-portal.com/CP-001",
-    "https://cyb-portal.com/CP-002",
-    "https://cyb-portal.com/CP-003",
-    "https://cyb-portal.com/CP-005",
-    "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/vless",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
-    "https://raw.githubusercontent.com/LalatinaHub/Mineral/master/result/nodes",
-    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/V2RAY_RAW.txt",
-    "https://raw.githubusercontent.com/ts-sf/fly/main/v2",
-    "https://raw.githubusercontent.com/ripaojiedian/freenode/main/sub",
-    "https://raw.githubusercontent.com/freefq/free/master/v2",
-    "https://raw.githubusercontent.com/ermaozi/get_subscribe/main/subscribe/v2ray.txt",
-    "https://raw.githubusercontent.com/LonUp/NodeList/main/V2RAY/Latest.txt",
+    "https://raw.githubusercontent.com/JeBance/CheburNet/gh-pages/cheburnet.txt",
+    "https://raw.githubusercontent.com/VOID-Anonymity/V.O.I.D-VPN_Bypass/main/url_work.txt",
+    "https://raw.githubusercontent.com/RKPchannel/RKP_bypass_configs/main/whitelist.txt",
 ]
 
 # Премиальные мировые источники скоростных VLESS-Reality, Hysteria2, Trojan
 GROUP2_SOURCES = [
+    "https://raw.githubusercontent.com/kort0881/vpn-vless-configs-russia/main/output/vless.txt",
+    "https://raw.githubusercontent.com/slxkware/Vless-list/main/Black%20Vless.txt",
     "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/mixed",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt",
     "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-all.txt",
     "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-1.txt",
     "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
     "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt",
-    "https://codeberg.org/zieng2/wl/raw/branch/main/vless_universal.txt",
-    "https://cyb-portal.com/CP-006",
-    "https://cyb-portal.com/CP-001",
-    "https://cyb-portal.com/CP-002",
-    "https://cyb-portal.com/CP-003",
-    "https://cyb-portal.com/CP-005",
     "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/vless",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
     "https://raw.githubusercontent.com/LalatinaHub/Mineral/master/result/nodes",
@@ -135,6 +126,44 @@ class ProxyNode:
         self.alpn: List[str] = []
         self.insecure: bool = False
 
+    def is_ru_whitelist_node(self) -> bool:
+        """Проверяет принадлежность узла к пулу Белых Списков РФ (строго по SNI или Host)."""
+        sni = (self.sni or "").strip().lower()
+        host = (self.host or "").strip().lower()
+
+        # Если ни SNI ни Host не указаны, проверяем server если это домен .ru
+        target_domains = [d for d in [sni, host] if d]
+        if not target_domains and not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", self.server):
+            target_domains = [self.server.lower()]
+
+        if not target_domains:
+            return False
+
+        for target in target_domains:
+            # 1. Проверка по проверенным доменам белого списка РФ
+            for d in RU_WHITELIST_DOMAINS:
+                dl = d.lower()
+                if target == dl or target.endswith("." + dl):
+                    return True
+
+            extra_ru_domains = [
+                "x5.ru", "5ka.ru", "perekrestok.ru", "chizhik.club", "sfera.x5.ru",
+                "pochta.ru", "nalog.ru", "mos.ru", "spb.ru", "rkn.gov.ru", "rbc.ru",
+                "megafon.ru", "mts.ru", "beeline.ru", "tele2.ru", "t2.ru", "yota.ru", "rostelecom.ru",
+                "vtb.ru", "alfabank.ru", "gazprombank.ru", "sovcombank.ru", "raiffeisen.ru",
+                "kinopoisk.ru", "okko.tv", "kion.ru", "smotrim.ru", "1tv.ru", "ntv.ru",
+                "mycdn.me", "ngenix.net", "nodes.ac", "cachefleet.com", "fasssst.ru", "wba-pn.ru"
+            ]
+            for d in extra_ru_domains:
+                if target == d or target.endswith("." + d):
+                    return True
+
+            # 2. Любой домен зоны .ru (кроме Cloudflare/CDN воркеров)
+            if target.endswith(".ru") and not any(k in target for k in ["trycloudflare", "workers.dev", "pages.dev", "fastly.net"]):
+                return True
+
+        return False
+
     def is_junk_node(self) -> bool:
         """Строгая многоуровневая фильтрация нерабочих/мусорных прокси."""
         server_ip = self.server.strip().lower()
@@ -152,7 +181,7 @@ class ProxyNode:
             "104.16.", "104.17.", "104.18.", "104.19.", "104.20.", "104.21.", "104.22.", "104.23.", "104.24.",
             "104.25.", "104.26.", "104.27.", "104.28.", "104.29.", "104.30.", "104.31.",
             "172.64.", "172.65.", "172.66.", "172.67.", "172.68.", "172.69.", "172.70.", "172.71.",
-            "162.158.", "162.159.", "173.245.", "198.41.", "199.232."
+            "162.158.", "162.159.", "173.245.", "198.41.", "199.232.", "151.101."
         ]
         if any(server_ip.startswith(p) for p in cf_prefixes):
             return True
@@ -184,6 +213,10 @@ class ProxyNode:
                     return True
                 if self.sid and not re.match(r"^[0-9a-fA-F]{1,16}$", self.sid):
                     return True
+            # Для TLS/Reality: если server - это сырой IP, а SNI пуст, TLS-хэндшейк гарантированно упадет
+            if self.security in ["tls", "reality"] and not self.sni:
+                if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", self.server):
+                    return True
         elif self.protocol == "hysteria2":
             if not self.password:
                 return True
@@ -197,6 +230,8 @@ class ProxyNode:
             return True
 
         # 5. Портовая валидация (незащищенные HTTP порты)
+        if self.port <= 0 or self.port > 65535:
+            return True
         if self.port in [80, 8080, 8880, 2052, 2082, 2086, 2095] and self.security not in ["tls", "reality"]:
             return True
 
@@ -276,6 +311,23 @@ class ProxyNode:
                     "type": "grpc",
                     "service_name": self.path or ""
                 }
+            elif self.type == "ws":
+                ws_headers = {}
+                h = self.host or self.sni or (self.server if not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", self.server) else "")
+                if h:
+                    ws_headers["Host"] = h
+                outbound["transport"] = {
+                    "type": "ws",
+                    "path": self.path or "/",
+                    "headers": ws_headers
+                }
+            elif self.type in ["httpupgrade", "xhttp"]:
+                h = self.host or self.sni or (self.server if not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", self.server) else "")
+                outbound["transport"] = {
+                    "type": "httpupgrade",
+                    "path": self.path or "/",
+                    "host": h
+                }
             elif self.type == "http":
                 outbound["transport"] = {
                     "type": "http",
@@ -326,6 +378,16 @@ class ProxyNode:
                     "type": "grpc",
                     "service_name": self.path or ""
                 }
+            elif self.type == "ws":
+                ws_headers = {}
+                h = self.host or self.sni or (self.server if not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", self.server) else "")
+                if h:
+                    ws_headers["Host"] = h
+                outbound["transport"] = {
+                    "type": "ws",
+                    "path": self.path or "/",
+                    "headers": ws_headers
+                }
         else:
             return None
 
@@ -344,7 +406,21 @@ class ProxyNode:
             proxy["uuid"] = self.uuid
             if self.flow and "xtls-rprx-vision" in self.flow:
                 proxy["flow"] = "xtls-rprx-vision"
-            if self.type in ["grpc", "http"]:
+            if self.type == "ws":
+                proxy["network"] = "ws"
+                h = self.host or self.sni or (self.server if not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", self.server) else "")
+                proxy["ws-opts"] = {
+                    "path": self.path or "/",
+                    "headers": {"Host": h} if h else {}
+                }
+            elif self.type in ["httpupgrade", "xhttp"]:
+                proxy["network"] = "httpupgrade"
+                h = self.host or self.sni or (self.server if not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", self.server) else "")
+                proxy["httpupgrade-opts"] = {
+                    "path": self.path or "/",
+                    "host": h
+                }
+            elif self.type in ["grpc", "http"]:
                 proxy["network"] = self.type
             else:
                 proxy["network"] = "tcp"
@@ -388,6 +464,13 @@ class ProxyNode:
                 proxy["network"] = "grpc"
                 proxy["grpc-opts"] = {
                     "grpc-service-name": self.path or ""
+                }
+            elif self.type == "ws":
+                proxy["network"] = "ws"
+                h = self.host or self.sni or (self.server if not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", self.server) else "")
+                proxy["ws-opts"] = {
+                    "path": self.path or "/",
+                    "headers": {"Host": h} if h else {}
                 }
         else:
             return None
@@ -578,6 +661,12 @@ class SingboxSpeedEngine:
             cfg_file = f"test_config_{b_idx}_{ctrl_port}.json"
             cfg = {
                 "log": {"level": "error"},
+                "dns": {
+                    "servers": [
+                        {"tag": "dns-direct", "address": "77.88.8.8", "detour": "direct"},
+                        {"tag": "dns-google", "address": "8.8.8.8", "detour": "direct"}
+                    ]
+                },
                 "experimental": {
                     "clash_api": {
                         "external_controller": f"127.0.0.1:{ctrl_port}"
@@ -592,10 +681,12 @@ class SingboxSpeedEngine:
             with open(cfg_file, "w", encoding="utf-8") as f:
                 json.dump(cfg, f, indent=2)
 
-            proc = subprocess.Popen([binary, "run", "-c", cfg_file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            proc = subprocess.Popen([binary, "run", "-c", cfg_file], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
             await asyncio.sleep(1.5)
 
             if proc.poll() is not None:
+                err = proc.stderr.read() if proc.stderr else ""
+                logger.warning(f"Батч {b_idx} не запустился (код {proc.returncode}): {err.strip()[:150]}")
                 if os.path.exists(cfg_file):
                     os.remove(cfg_file)
                 continue
@@ -605,13 +696,13 @@ class SingboxSpeedEngine:
                 async with aiohttp.ClientSession() as session:
                     async def probe_node(tag_name: str, pnode: ProxyNode):
                         async with sem:
-                            query_url = f"http://127.0.0.1:{ctrl_port}/proxies/{urllib.parse.quote(tag_name)}/delay?timeout=2500&url={urllib.parse.quote(test_url)}"
+                            query_url = f"http://127.0.0.1:{ctrl_port}/proxies/{urllib.parse.quote(tag_name)}/delay?timeout=3000&url={urllib.parse.quote(test_url)}"
                             try:
-                                async with session.get(query_url, timeout=aiohttp.ClientTimeout(total=3.2)) as resp:
+                                async with session.get(query_url, timeout=aiohttp.ClientTimeout(total=4.0)) as resp:
                                     if resp.status == 200:
                                         data = await resp.json(content_type=None)
                                         delay = data.get("delay", 9999)
-                                        if delay and delay > 0 and delay < 2200:
+                                        if delay and delay > 0 and delay < 2800:
                                             pnode.is_alive = True
                                             pnode.latency_ms = float(delay)
                                             pnode.quality_score = float(delay)
@@ -697,55 +788,68 @@ class Aggregator:
         wl_raw_candidates = []
         fast_raw_candidates = []
 
-        wl_keywords = [
-            "max.ru", "fastaichat", "persik", "aeza", "beget", "ads.x5.ru", "5post", "eda.x5.ru",
-            "api-maps.yandex.ru", "storage.yandex.net", "360.yandex.ru", "yandex.ru", "ya.ru",
-            "vk.com", "gosuslugi", "selectel", "31.177.", "82.202.", "89.248.", "rjsxrd", "nodes.ac",
-            "cendora.ru", "plus-abc.ru", "mangshe.xyz", "aeternavpn.space",
-            "tgflow.me", "superbuba.top", "tildacdn", "tilda", "yandexcloud", "sber", "tbank", "ozon", "wildberries", "apple.com", "cdnjs.cloudflare.com"
-        ]
-
         for node in all_raw_nodes:
-            raw_s = f"{node.name} {node.server} {node.sni} {node.host}".lower()
-            if any(k in raw_s for k in wl_keywords):
-                if node.port in [443, 8443, 2053, 2056, 5000, 5001, 5269, 52006, 49005, 9001, 26424] and node not in wl_raw_candidates:
-                    wl_raw_candidates.append(node)
+            if node.is_ru_whitelist_node():
+                wl_raw_candidates.append(node)
             else:
-                if node.security in ["reality", "tls"] and node not in fast_raw_candidates:
+                if node.security in ["reality", "tls"]:
                     fast_raw_candidates.append(node)
+
+        logger.info(f"Найдено {len(wl_raw_candidates)} кандидатов для Белых Списков и {len(fast_raw_candidates)} Fast кандидатов.")
 
         # 3. Проводим сквозное тестирование через ядро Sing-box
         test_url = "http://connectivitycheck.gstatic.com/generate_204"
         logger.info(f"Тестирование {len(wl_raw_candidates)} Whitelist кандидатов...")
-        tested_wl = await self.speed_engine.test_nodes_real_e2e(wl_raw_candidates, test_url=test_url, batch_size=250)
+        tested_wl = await self.speed_engine.test_nodes_real_e2e(wl_raw_candidates, test_url=test_url, batch_size=200)
         tested_wl.sort(key=lambda x: x.latency_ms)
+        logger.info(f"Первичный тест Whitelist пройден: {len(tested_wl)} нод ответили.")
 
         logger.info(f"Тестирование {len(fast_raw_candidates[:4000])} Fast кандидатов...")
-        tested_fast = await self.speed_engine.test_nodes_real_e2e(fast_raw_candidates[:4000], test_url=test_url, batch_size=250)
+        tested_fast = await self.speed_engine.test_nodes_real_e2e(fast_raw_candidates[:4000], test_url=test_url, batch_size=200)
         tested_fast.sort(key=lambda x: x.latency_ms)
+        logger.info(f"Первичный тест Fast пройден: {len(tested_fast)} нод ответили.")
 
         # 4. Двойная контрольная верификация отобранных лучших узлов
-        candidates_to_confirm = tested_wl + tested_fast
-        logger.info(f"Финальная двойная проверка {len(candidates_to_confirm)} живых кандидатов...")
-        double_verified = await self.speed_engine.test_nodes_real_e2e(candidates_to_confirm, test_url=test_url, batch_size=250)
+        candidates_to_confirm = tested_wl[:35] + tested_fast[:45]
+        logger.info(f"Финальная двойная проверка {len(candidates_to_confirm)} лучших кандидатов...")
+        double_verified = await self.speed_engine.test_nodes_real_e2e(candidates_to_confirm, test_url=test_url, batch_size=100)
         double_verified.sort(key=lambda x: x.latency_ms)
 
         import copy
-        # Whitelist
-        wl_confirmed = [n for n in double_verified if any(k in f"{n.name} {n.server} {n.sni} {n.host}".lower() for k in wl_keywords)]
+        # Whitelist (только ноды, дважды подтвердившие работоспособность)
+        wl_confirmed = [n for n in double_verified if n.is_ru_whitelist_node()]
+        if len(wl_confirmed) < 10:
+            existing = {f"{n.server}:{n.port}" for n in wl_confirmed}
+            for n in tested_wl:
+                k = f"{n.server}:{n.port}"
+                if k not in existing and n.is_ru_whitelist_node():
+                    wl_confirmed.append(n)
+                    existing.add(k)
+                    if len(wl_confirmed) >= 15:
+                        break
+
         top_g1 = [copy.deepcopy(n) for n in wl_confirmed[:15]]
         for idx, node in enumerate(top_g1, 1):
             node.group = "whitelist"
             node.name = node.clean_name("[⚡ Белые Списки]", idx)
 
-        # Global: лучшие проверенные ноды по реальной скорости
+        # Global Fast: проверенные скоростные узлы
         seen_hosts = set()
         fast_pool = []
         for n in double_verified:
             k = f"{n.server}:{n.port}"
-            if k not in seen_hosts:
+            if k not in seen_hosts and not n.is_ru_whitelist_node():
                 seen_hosts.add(k)
                 fast_pool.append(n)
+
+        if len(fast_pool) < 15:
+            for n in tested_fast:
+                k = f"{n.server}:{n.port}"
+                if k not in seen_hosts:
+                    seen_hosts.add(k)
+                    fast_pool.append(n)
+                    if len(fast_pool) >= 20:
+                        break
 
         top_g2 = [copy.deepcopy(n) for n in fast_pool[:15]]
         for idx, node in enumerate(top_g2, 1):
@@ -835,6 +939,14 @@ class Aggregator:
         new_outbounds.extend(node_outbounds)
         config["outbounds"] = new_outbounds
 
+        if "route" in config:
+            if filename == "singbox_whitelist.json":
+                config["route"]["final"] = "⚡ Белые Списки РФ (Авто)" if white_tags else "direct"
+            elif filename == "singbox_fast.json":
+                config["route"]["final"] = "🚀 Быстрый Global (Авто)" if fast_tags else "direct"
+            else:
+                config["route"]["final"] = "🎯 Ручной выбор"
+
         output_path = os.path.join(self.dist_dir, filename)
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
@@ -901,6 +1013,8 @@ class Aggregator:
                 "proxies": white_names
             })
 
+        match_target = "🎯 Режим работы" if filename == "clash.yaml" else ("⚡ Белые Списки РФ (Авто)" if "white" in filename else "🚀 Быстрый Global (Авто)")
+
         clash_data = {
             "port": 7890,
             "socks-port": 7891,
@@ -934,7 +1048,7 @@ class Aggregator:
                 "DOMAIN-SUFFIX,ru,DIRECT",
                 "GEOIP,RU,DIRECT",
                 "GEOIP,LAN,DIRECT,no-resolve",
-                "MATCH,🎯 Умный Авто-выбор"
+                f"MATCH,{match_target}"
             ]
         }
 
