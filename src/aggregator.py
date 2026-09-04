@@ -44,34 +44,30 @@ logger = logging.getLogger("VPN-Aggregator")
 # Домены белого списка РФ для обхода глушения ТСПУ
 RU_WHITELIST_DOMAINS = [
     "vk.com", "vk.ru", "vk-portal.net", "userapi.com", "api.vk.com", "eh.vk.com",
-    "yandex.ru", "yandex.net", "yastatic.net", "ya.ru", "api-maps.yandex.ru",
-    "yandexcloud.net", "s3.yandexcloud.net", "storage.yandexcloud.net", "360.yandex.ru",
+    "yandex.ru", "yandex.net", "yastatic.net", "ya.ru", "api-maps.yandex.ru", "360.yandex.ru", "drive.yandex.ru",
+    "yandexcloud.net", "s3.yandexcloud.net", "storage.yandexcloud.net",
     "mail.ru", "cloud.mail.ru", "bk.ru", "inbox.ru",
-    "gosuslugi.ru", "esia.gosuslugi.ru",
-    "max.ru", "fastaichat.ru",
-    "dzen.ru", "rutube.ru", "tinkoff.ru", "tbank.ru",
-    "sberbank.ru", "sber.ru", "vtb.ru", "alfabank.ru", "gazprombank.ru",
-    "ozon.ru", "wildberries.ru", "avito.ru", "mos.ru", "spb.ru",
-    "tildacdn.pub", "tilda.ws", "tilda.cc",
-    "ads.x5.ru", "5post-gate.x5.ru", "eda.x5.ru", "5post.ru", "x5.ru", "5ka.ru", "sfera.x5.ru",
-    "megafon.ru", "mts.ru", "beeline.ru", "tele2.ru", "t2.ru", "yota.ru", "rostelecom.ru",
-    "nodes.ac", "cachefleet.com", "mycdn.me", "ngenix.net", "fasssst.ru",
-    "apple.com", "itunes.apple.com", "icloud.com"
+    "gosuslugi.ru", "esia.gosuslugi.ru", "mos.ru", "spb.ru", "nalog.ru", "pochta.ru", "rkn.gov.ru",
+    "sberbank.ru", "sber.ru", "tbank.ru", "tinkoff.ru", "vtb.ru", "alfabank.ru", "gazprombank.ru",
+    "ozon.ru", "wildberries.ru", "avito.ru", "rbc.ru",
+    "ads.x5.ru", "5post-gate.x5.ru", "eda.x5.ru", "5post.ru", "x5.ru", "5ka.ru", "perekrestok.ru",
+    "megafon.ru", "mts.ru", "beeline.ru", "tele2.ru", "t2.ru", "rostelecom.ru",
+    "max.ru", "web.max.ru", "help.max.ru", "download.max.ru"
 ]
 
-# Источники для обхода блокировок РФ и белых списков
+# Источники для обхода блокировок РФ и белых списков (включая RU CIDR ноды для работы при шатдауне)
 GROUP1_SOURCES = [
+    "https://raw.githubusercontent.com/aviamastersgh/vpn-free-russia/main/ru_configs.txt",
+    "https://raw.githubusercontent.com/aviamastersgh/vpn-free-russia/main/verified_configs.txt",
+    "https://raw.githubusercontent.com/flaafix/AetrisVPN-white-list-lite/main/AetrisVPN.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-all.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/main/WHITE-CIDR-RU-checked.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/main/Vless-Reality-White-Lists-Rus-Mobile.txt",
+    "https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/Countries/Russia.txt",
+    "https://raw.githubusercontent.com/RKPchannel/RKP_bypass_configs/main/whitelist.txt",
+    "https://raw.githubusercontent.com/slxkware/Vless-list/main/White%20Vless.txt",
     "https://raw.githubusercontent.com/ByeWhiteLists/ByeWhiteLists2/refs/heads/main/ByeWhiteLists2.txt",
     "https://raw.githubusercontent.com/wlunlocker/vpn-configs/main/whitelist_all.txt",
-    "https://raw.githubusercontent.com/slxkware/Vless-list/main/White%20Vless.txt",
-    "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-all.txt",
-    "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-1.txt",
-    "https://raw.githubusercontent.com/whoahaow/rjsxrd/main/githubmirror/bypass/bypass-2.txt",
-    "https://raw.githubusercontent.com/zieng2/wl/main/vless_universal.txt",
-    "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt",
-    "https://raw.githubusercontent.com/JeBance/CheburNet/gh-pages/cheburnet.txt",
-    "https://raw.githubusercontent.com/VOID-Anonymity/V.O.I.D-VPN_Bypass/main/url_work.txt",
-    "https://raw.githubusercontent.com/RKPchannel/RKP_bypass_configs/main/whitelist.txt",
 ]
 
 # Премиальные мировые источники скоростных VLESS-Reality, Hysteria2, Trojan
@@ -127,11 +123,21 @@ class ProxyNode:
         self.insecure: bool = False
 
     def is_ru_whitelist_node(self) -> bool:
-        """Проверяет принадлежность узла к пулу Белых Списков РФ (строго по SNI или Host)."""
+        """Проверяет принадлежность узла к пулу Белых Списков РФ."""
+        # Для работы при блокировках и белых списках РФ подходит только VLESS (Reality/TLS)
+        # Hysteria2 (QUIC/UDP) и Shadowsocks на 100% блокируются ТСПУ при ограничениях
+        if self.protocol != "vless":
+            return False
+
         sni = (self.sni or "").strip().lower()
         host = (self.host or "").strip().lower()
+        name = self.name.lower()
+        raw = f"{name} {self.server.lower()} {sni} {host}"
 
-        # Если ни SNI ни Host не указаны, проверяем server если это домен .ru
+        # 1. Проверка специальных маркеров российских CIDR серверов (Sbercloud, Selectel, Timeweb)
+        if any(marker in raw for marker in ["cidr", "ru cidr", "🇷🇺", "russia"]):
+            return True
+
         target_domains = [d for d in [sni, host] if d]
         if not target_domains and not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", self.server):
             target_domains = [self.server.lower()]
@@ -140,25 +146,13 @@ class ProxyNode:
             return False
 
         for target in target_domains:
-            # 1. Проверка по проверенным доменам белого списка РФ
+            # 2. Проверка по доменам белого списка РФ
             for d in RU_WHITELIST_DOMAINS:
                 dl = d.lower()
                 if target == dl or target.endswith("." + dl):
                     return True
 
-            extra_ru_domains = [
-                "x5.ru", "5ka.ru", "perekrestok.ru", "chizhik.club", "sfera.x5.ru",
-                "pochta.ru", "nalog.ru", "mos.ru", "spb.ru", "rkn.gov.ru", "rbc.ru",
-                "megafon.ru", "mts.ru", "beeline.ru", "tele2.ru", "t2.ru", "yota.ru", "rostelecom.ru",
-                "vtb.ru", "alfabank.ru", "gazprombank.ru", "sovcombank.ru", "raiffeisen.ru",
-                "kinopoisk.ru", "okko.tv", "kion.ru", "smotrim.ru", "1tv.ru", "ntv.ru",
-                "mycdn.me", "ngenix.net", "nodes.ac", "cachefleet.com", "fasssst.ru", "wba-pn.ru"
-            ]
-            for d in extra_ru_domains:
-                if target == d or target.endswith("." + d):
-                    return True
-
-            # 2. Любой домен зоны .ru (кроме Cloudflare/CDN воркеров)
+            # 3. Любой домен зоны .ru (кроме CDN/воркеров)
             if target.endswith(".ru") and not any(k in target for k in ["trycloudflare", "workers.dev", "pages.dev", "fastly.net"]):
                 return True
 
@@ -942,8 +936,17 @@ class Aggregator:
         if "route" in config:
             if filename == "singbox_whitelist.json":
                 config["route"]["final"] = "⚡ Белые Списки РФ (Авто)" if white_tags else "direct"
+                config["route"]["rules"] = [r for r in config["route"].get("rules", []) if "domain_suffix" not in r]
+                if "dns" in config:
+                    for s in config["dns"].get("servers", []):
+                        if s.get("tag") in ["remote-dns", "remote-dns-fallback"]:
+                            s["detour"] = "⚡ Белые Списки РФ (Авто)"
             elif filename == "singbox_fast.json":
                 config["route"]["final"] = "🚀 Быстрый Global (Авто)" if fast_tags else "direct"
+                if "dns" in config:
+                    for s in config["dns"].get("servers", []):
+                        if s.get("tag") in ["remote-dns", "remote-dns-fallback"]:
+                            s["detour"] = "🚀 Быстрый Global (Авто)"
             else:
                 config["route"]["final"] = "🎯 Ручной выбор"
 
@@ -1013,7 +1016,43 @@ class Aggregator:
                 "proxies": white_names
             })
 
-        match_target = "🎯 Режим работы" if filename == "clash.yaml" else ("⚡ Белые Списки РФ (Авто)" if "white" in filename else "🚀 Быстрый Global (Авто)")
+        if filename == "clash_whitelist.yaml":
+            rules = [
+                "GEOIP,LAN,DIRECT,no-resolve",
+                "MATCH,⚡ Белые Списки РФ (Авто)"
+            ]
+        elif filename == "clash_fast.yaml":
+            rules = [
+                "DOMAIN-SUFFIX,yandex.ru,DIRECT",
+                "DOMAIN-SUFFIX,ya.ru,DIRECT",
+                "DOMAIN-SUFFIX,vk.com,DIRECT",
+                "DOMAIN-SUFFIX,gosuslugi.ru,DIRECT",
+                "DOMAIN-SUFFIX,mail.ru,DIRECT",
+                "DOMAIN-SUFFIX,sberbank.ru,DIRECT",
+                "DOMAIN-SUFFIX,tbank.ru,DIRECT",
+                "DOMAIN-SUFFIX,ozon.ru,DIRECT",
+                "DOMAIN-SUFFIX,wildberries.ru,DIRECT",
+                "DOMAIN-SUFFIX,ru,DIRECT",
+                "GEOIP,RU,DIRECT",
+                "GEOIP,LAN,DIRECT,no-resolve",
+                "MATCH,🚀 Быстрый Global (Авто)"
+            ]
+        else:
+            rules = [
+                "DOMAIN-SUFFIX,yandex.ru,DIRECT",
+                "DOMAIN-SUFFIX,ya.ru,DIRECT",
+                "DOMAIN-SUFFIX,vk.com,DIRECT",
+                "DOMAIN-SUFFIX,gosuslugi.ru,DIRECT",
+                "DOMAIN-SUFFIX,mail.ru,DIRECT",
+                "DOMAIN-SUFFIX,sberbank.ru,DIRECT",
+                "DOMAIN-SUFFIX,tbank.ru,DIRECT",
+                "DOMAIN-SUFFIX,ozon.ru,DIRECT",
+                "DOMAIN-SUFFIX,wildberries.ru,DIRECT",
+                "DOMAIN-SUFFIX,ru,DIRECT",
+                "GEOIP,RU,DIRECT",
+                "GEOIP,LAN,DIRECT,no-resolve",
+                "MATCH,🎯 Режим работы"
+            ]
 
         clash_data = {
             "port": 7890,
@@ -1030,26 +1069,12 @@ class Aggregator:
                 "default-nameserver": ["77.88.8.8", "8.8.8.8"],
                 "enhanced-mode": "fake-ip",
                 "fake-ip-range": "198.18.0.1/16",
-                "nameserver": ["https://1.1.1.1/dns-query", "https://8.8.8.8/dns-query", "77.88.8.8"],
+                "nameserver": ["https://dns.google/dns-query", "77.88.8.8"],
                 "fallback": ["https://77.88.8.8/dns-query"]
             },
             "proxies": proxies,
             "proxy-groups": proxy_groups,
-            "rules": [
-                "DOMAIN-SUFFIX,yandex.ru,DIRECT",
-                "DOMAIN-SUFFIX,ya.ru,DIRECT",
-                "DOMAIN-SUFFIX,vk.com,DIRECT",
-                "DOMAIN-SUFFIX,gosuslugi.ru,DIRECT",
-                "DOMAIN-SUFFIX,mail.ru,DIRECT",
-                "DOMAIN-SUFFIX,sberbank.ru,DIRECT",
-                "DOMAIN-SUFFIX,tbank.ru,DIRECT",
-                "DOMAIN-SUFFIX,ozon.ru,DIRECT",
-                "DOMAIN-SUFFIX,wildberries.ru,DIRECT",
-                "DOMAIN-SUFFIX,ru,DIRECT",
-                "GEOIP,RU,DIRECT",
-                "GEOIP,LAN,DIRECT,no-resolve",
-                f"MATCH,{match_target}"
-            ]
+            "rules": rules
         }
 
         output_path = os.path.join(self.dist_dir, filename)

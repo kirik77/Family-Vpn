@@ -7,21 +7,20 @@
     "servers": [
       {
         "tag": "remote-dns",
-        "address": "https://1.1.1.1/dns-query",
+        "address": "https://dns.google/dns-query",
         "address_resolver": "local-dns",
-        "detour": "🎯 Умный Авто-выбор",
+        "detour": "🎯 Ручной выбор",
         "strategy": "prefer_ipv4"
       },
       {
         "tag": "remote-dns-fallback",
-        "address": "https://8.8.8.8/dns-query",
-        "address_resolver": "local-dns",
-        "detour": "🎯 Умный Авто-выбор",
+        "address": "tcp://8.8.8.8",
+        "detour": "🎯 Ручной выбор",
         "strategy": "prefer_ipv4"
       },
       {
         "tag": "local-dns",
-        "address": "77.88.8.8",
+        "address": "local",
         "detour": "direct",
         "strategy": "prefer_ipv4"
       },
@@ -80,7 +79,7 @@
       "type": "urltest",
       "tag": "🎯 Умный Авто-выбор",
       "outbounds": [],
-      "url": "https://cp.cloudflare.com/generate_204",
+      "url": "http://connectivitycheck.gstatic.com/generate_204",
       "interval": "2m",
       "tolerance": 40
     },
@@ -88,7 +87,7 @@
       "type": "urltest",
       "tag": "🚀 Быстрый Global (Авто)",
       "outbounds": [],
-      "url": "https://cp.cloudflare.com/generate_204",
+      "url": "http://connectivitycheck.gstatic.com/generate_204",
       "interval": "2m",
       "tolerance": 40
     },
@@ -96,7 +95,7 @@
       "type": "urltest",
       "tag": "⚡ Белые Списки РФ (Авто)",
       "outbounds": [],
-      "url": "https://cp.cloudflare.com/generate_204",
+      "url": "http://connectivitycheck.gstatic.com/generate_204",
       "interval": "2m",
       "tolerance": 40
     },
