@@ -267,9 +267,10 @@
 
     <!-- Статус обновления -->
     <div class="glass-card rounded-2xl p-4 text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-3">
-      <div class="flex items-center space-x-4">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
         <span>Обновление серверов: <strong id="stat-updated" class="text-slate-200">Автоматически каждый час</strong></span>
-        <span class="border-l border-slate-800 pl-4">Активных серверов: <strong id="stat-nodes-count" class="text-emerald-400">25 узлов</strong></span>
+        <span class="border-l border-slate-800 pl-4">Серверов (100% живые): <strong id="stat-nodes-count" class="text-emerald-400">25 узлов</strong></span>
+        <span id="stat-speed-container" class="border-l border-slate-800 pl-4">Скорость загрузки: <strong id="stat-speed" class="text-indigo-400">до 2.5 MB/s</strong></span>
       </div>
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -407,7 +408,10 @@
         if (resp.ok) {
           const stats = await resp.json();
           if (stats.updated_at_msk) document.getElementById('stat-updated').textContent = stats.updated_at_msk;
-          if (stats.total_active_nodes) document.getElementById('stat-nodes-count').textContent = `${stats.total_active_nodes} серверов (Reality & Whitelist)`;
+          if (stats.total_active_nodes) document.getElementById('stat-nodes-count').textContent = `${stats.total_active_nodes} серверов`;
+          if (stats.top_global_speed && stats.top_global_speed !== '0 KB/s') {
+            document.getElementById('stat-speed').textContent = `до ${stats.top_global_speed}`;
+          }
         }
       } catch (e) {}
     }
