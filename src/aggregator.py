@@ -96,6 +96,15 @@ GROUP2_SOURCES = [
     "https://raw.githubusercontent.com/Romaxa55/MegaV_Public/main/subs/vless.txt",
     "https://raw.githubusercontent.com/Au1rxx/free-vpn-subscriptions/main/output/protocol/vless/v2ray-base64-0001.txt",
     "https://raw.githubusercontent.com/Au1rxx/free-vpn-subscriptions/main/output/protocol/hysteria2/v2ray-base64-0001.txt",
+    # Новые качественные источники для обхода YouTube и AI
+    "https://raw.githubusercontent.com/tbbatbb/Proxy/master/merged",
+    "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
+    "https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/normal/vless",
+    "https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/normal/hysteria2",
+    "https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/normal/reality",
+    "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2",
+    "https://raw.githubusercontent.com/LonUp/NodeList/main/V2RAY/VLESS.txt",
+    "https://raw.githubusercontent.com/BoringCat/free-node-update/main/sub/vless.txt",
 ]
 
 
@@ -191,7 +200,9 @@ class ProxyNode:
         slow_domains = [
             "trycloudflare.com", "workers.dev", "pages.dev", "hf.space", "onrender.com",
             "glitch.me", "fastly.net", "berzulo.ir", "freelanceriran98.ir", ".ir",
-            "jarvestip", "jarvesitw", "xiaoliyu", "whitecreeper"
+            "jarvestip", "jarvesitw", "xiaoliyu", "whitecreeper",
+            "herokuapp.com", "repl.co", "koyeb.app", "railway.app", "koyeb.com",
+            "bepass", "worker", "cdn.discordapp.com"
         ]
         if any(sd in raw_info for sd in slow_domains):
             return True
@@ -726,7 +737,7 @@ class SingboxSpeedEngine:
     async def test_nodes_real_payload_speed(
         self,
         nodes: List[ProxyNode],
-        speed_url: str = "http://speed.cloudflare.com/__down?bytes=300000",
+        speed_url: str = "http://speedtest.tele2.net/1MB.zip",
         min_speed_kbps: float = 80.0,
         batch_size: int = 25
     ) -> List[ProxyNode]:
@@ -918,19 +929,20 @@ class Aggregator:
         logger.info(f"Скрининг Whitelist: {len(screened_wl)} нод ответили на пинг.")
 
         # Для глобальных серверов скриним пул до 3000 узлов
-        screened_fast = await self.speed_engine.screen_nodes_ping(fast_raw_candidates[:3000], test_url=test_url_wl, batch_size=200, timeout_ms=2200)
-        logger.info(f"Скрининг Fast: {len(screened_fast)} нод ответили на пинг.")
+        test_url_fast = "https://www.youtube.com/generate_204"
+        screened_fast = await self.speed_engine.screen_nodes_ping(fast_raw_candidates[:3000], test_url=test_url_fast, batch_size=200, timeout_ms=2200)
+        logger.info(f"Скрининг Fast (YouTube test): {len(screened_fast)} нод ответили на пинг.")
 
         # 4. Ступень 2: Настоящее тестирование пропускной способности (Throughput Speedtest)
         logger.info("--- Ступень 2: Замер реальной скорости загрузки данных (Throughput) ---")
         logger.info(f"Запуск Throughput Speedtest для {len(screened_wl)} выживших кандидатов Whitelist...")
-        tested_wl = await self.speed_engine.test_nodes_real_payload_speed(screened_wl, min_speed_kbps=80.0, batch_size=25)
+        tested_wl = await self.speed_engine.test_nodes_real_payload_speed(screened_wl, min_speed_kbps=150.0, batch_size=25)
         # Сортируем по показателю реального качества (скорость + пинг)
         tested_wl.sort(key=lambda x: x.quality_score, reverse=True)
         logger.info(f"Throughput тест Whitelist пройден: {len(tested_wl)} нод подтвердили реальную скорость загрузки данных.")
 
         logger.info(f"Запуск Throughput Speedtest для {len(screened_fast)} выживших кандидатов Fast...")
-        tested_fast = await self.speed_engine.test_nodes_real_payload_speed(screened_fast, min_speed_kbps=100.0, batch_size=25)
+        tested_fast = await self.speed_engine.test_nodes_real_payload_speed(screened_fast, min_speed_kbps=350.0, batch_size=25)
         tested_fast.sort(key=lambda x: x.quality_score, reverse=True)
         logger.info(f"Throughput тест Fast пройден: {len(tested_fast)} нод подтвердили реальную скорость загрузки данных.")
 
@@ -940,8 +952,8 @@ class Aggregator:
         top_fast_candidates = tested_fast[:25]
 
         # Вторичная контрольная проверка загрузки данных
-        double_verified_wl = await self.speed_engine.test_nodes_real_payload_speed(top_wl_candidates, min_speed_kbps=75.0, batch_size=20)
-        double_verified_fast = await self.speed_engine.test_nodes_real_payload_speed(top_fast_candidates, min_speed_kbps=80.0, batch_size=20)
+        double_verified_wl = await self.speed_engine.test_nodes_real_payload_speed(top_wl_candidates, min_speed_kbps=150.0, batch_size=20)
+        double_verified_fast = await self.speed_engine.test_nodes_real_payload_speed(top_fast_candidates, min_speed_kbps=300.0, batch_size=20)
 
         # 6. Отбор финальных узлов (Strict Zero Dead Nodes Policy: никаких добавления непроверенных!)
         # Whitelist
@@ -1142,7 +1154,7 @@ class Aggregator:
             proxy_groups.append({
                 "name": "🚀 Быстрый Global (Авто)",
                 "type": "url-test",
-                "url": "http://connectivitycheck.gstatic.com/generate_204",
+                "url": "https://www.youtube.com/generate_204",
                 "interval": 120,
                 "tolerance": 40,
                 "proxies": fast_names
