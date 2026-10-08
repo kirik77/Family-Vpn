@@ -200,7 +200,9 @@ class ProxyNode:
         slow_domains = [
             "trycloudflare.com", "workers.dev", "pages.dev", "hf.space", "onrender.com",
             "glitch.me", "fastly.net", "berzulo.ir", "freelanceriran98.ir", ".ir",
-            "jarvestip", "jarvesitw", "xiaoliyu", "whitecreeper"
+            "jarvestip", "jarvesitw", "xiaoliyu", "whitecreeper",
+            "herokuapp.com", "repl.co", "koyeb.app", "railway.app", "koyeb.com",
+            "bepass", "worker", "cdn.discordapp.com"
         ]
         if any(sd in raw_info for sd in slow_domains):
             return True
@@ -735,7 +737,7 @@ class SingboxSpeedEngine:
     async def test_nodes_real_payload_speed(
         self,
         nodes: List[ProxyNode],
-        speed_url: str = "http://speed.cloudflare.com/__down?bytes=300000",
+        speed_url: str = "http://speedtest.tele2.net/1MB.zip",
         min_speed_kbps: float = 80.0,
         batch_size: int = 25
     ) -> List[ProxyNode]:
@@ -934,13 +936,13 @@ class Aggregator:
         # 4. Ступень 2: Настоящее тестирование пропускной способности (Throughput Speedtest)
         logger.info("--- Ступень 2: Замер реальной скорости загрузки данных (Throughput) ---")
         logger.info(f"Запуск Throughput Speedtest для {len(screened_wl)} выживших кандидатов Whitelist...")
-        tested_wl = await self.speed_engine.test_nodes_real_payload_speed(screened_wl, min_speed_kbps=80.0, batch_size=25)
+        tested_wl = await self.speed_engine.test_nodes_real_payload_speed(screened_wl, min_speed_kbps=150.0, batch_size=25)
         # Сортируем по показателю реального качества (скорость + пинг)
         tested_wl.sort(key=lambda x: x.quality_score, reverse=True)
         logger.info(f"Throughput тест Whitelist пройден: {len(tested_wl)} нод подтвердили реальную скорость загрузки данных.")
 
         logger.info(f"Запуск Throughput Speedtest для {len(screened_fast)} выживших кандидатов Fast...")
-        tested_fast = await self.speed_engine.test_nodes_real_payload_speed(screened_fast, min_speed_kbps=100.0, batch_size=25)
+        tested_fast = await self.speed_engine.test_nodes_real_payload_speed(screened_fast, min_speed_kbps=350.0, batch_size=25)
         tested_fast.sort(key=lambda x: x.quality_score, reverse=True)
         logger.info(f"Throughput тест Fast пройден: {len(tested_fast)} нод подтвердили реальную скорость загрузки данных.")
 
@@ -950,8 +952,8 @@ class Aggregator:
         top_fast_candidates = tested_fast[:25]
 
         # Вторичная контрольная проверка загрузки данных
-        double_verified_wl = await self.speed_engine.test_nodes_real_payload_speed(top_wl_candidates, min_speed_kbps=75.0, batch_size=20)
-        double_verified_fast = await self.speed_engine.test_nodes_real_payload_speed(top_fast_candidates, min_speed_kbps=80.0, batch_size=20)
+        double_verified_wl = await self.speed_engine.test_nodes_real_payload_speed(top_wl_candidates, min_speed_kbps=150.0, batch_size=20)
+        double_verified_fast = await self.speed_engine.test_nodes_real_payload_speed(top_fast_candidates, min_speed_kbps=300.0, batch_size=20)
 
         # 6. Отбор финальных узлов (Strict Zero Dead Nodes Policy: никаких добавления непроверенных!)
         # Whitelist
