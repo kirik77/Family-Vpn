@@ -96,6 +96,15 @@ GROUP2_SOURCES = [
     "https://raw.githubusercontent.com/Romaxa55/MegaV_Public/main/subs/vless.txt",
     "https://raw.githubusercontent.com/Au1rxx/free-vpn-subscriptions/main/output/protocol/vless/v2ray-base64-0001.txt",
     "https://raw.githubusercontent.com/Au1rxx/free-vpn-subscriptions/main/output/protocol/hysteria2/v2ray-base64-0001.txt",
+    # Новые качественные источники для обхода YouTube и AI
+    "https://raw.githubusercontent.com/tbbatbb/Proxy/master/merged",
+    "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
+    "https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/normal/vless",
+    "https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/normal/hysteria2",
+    "https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/normal/reality",
+    "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2",
+    "https://raw.githubusercontent.com/LonUp/NodeList/main/V2RAY/VLESS.txt",
+    "https://raw.githubusercontent.com/BoringCat/free-node-update/main/sub/vless.txt",
 ]
 
 
@@ -918,8 +927,9 @@ class Aggregator:
         logger.info(f"Скрининг Whitelist: {len(screened_wl)} нод ответили на пинг.")
 
         # Для глобальных серверов скриним пул до 3000 узлов
-        screened_fast = await self.speed_engine.screen_nodes_ping(fast_raw_candidates[:3000], test_url=test_url_wl, batch_size=200, timeout_ms=2200)
-        logger.info(f"Скрининг Fast: {len(screened_fast)} нод ответили на пинг.")
+        test_url_fast = "https://www.youtube.com/generate_204"
+        screened_fast = await self.speed_engine.screen_nodes_ping(fast_raw_candidates[:3000], test_url=test_url_fast, batch_size=200, timeout_ms=2200)
+        logger.info(f"Скрининг Fast (YouTube test): {len(screened_fast)} нод ответили на пинг.")
 
         # 4. Ступень 2: Настоящее тестирование пропускной способности (Throughput Speedtest)
         logger.info("--- Ступень 2: Замер реальной скорости загрузки данных (Throughput) ---")
@@ -1142,7 +1152,7 @@ class Aggregator:
             proxy_groups.append({
                 "name": "🚀 Быстрый Global (Авто)",
                 "type": "url-test",
-                "url": "http://connectivitycheck.gstatic.com/generate_204",
+                "url": "https://www.youtube.com/generate_204",
                 "interval": 120,
                 "tolerance": 40,
                 "proxies": fast_names
